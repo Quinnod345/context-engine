@@ -1,0 +1,51 @@
+{
+  "name": "@oneiro/context-engine",
+  "version": "0.1.0",
+  "description": "A general-purpose context engine for AI agents. Ingest events, build semantic context, query with natural language.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "context-engine": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "dev": "tsc --watch",
+    "start": "node dist/cli.js serve"
+  },
+  "author": "Oneiro <oneiro-dev@proton.me>",
+  "license": "MIT",
+  "keywords": ["ai", "context", "agents", "embeddings", "semantic-search", "events"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Quinnod345/context-engine.git"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "commander": "^13.0.0",
+    "express": "^5.0.1",
+    "openai": "^4.0.0",
+    "pg": "^8.13.0",
+    "pgvector": "^0.2.0",
+    "uuid": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.11.0",
+    "@types/uuid": "^10.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
