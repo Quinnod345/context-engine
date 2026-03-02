@@ -1,8 +1,21 @@
 # context-engine-ai
 
+[![npm version](https://img.shields.io/npm/v/context-engine-ai)](https://www.npmjs.com/package/context-engine-ai)
+[![license](https://img.shields.io/npm/l/context-engine-ai)](./LICENSE)
+[![tests](https://img.shields.io/badge/tests-14%2F14-green)](./tests)
+
 A lightweight, general-purpose context engine for AI agents and applications. Ingest events, build semantic context, and query "what's happening right now?" with natural language.
 
-Zero dependencies. Works out of the box with SQLite + local TF-IDF embeddings.
+Zero core dependencies. Works out of the box with SQLite + local TF-IDF embeddings.
+
+## Why?
+
+When building AI agents and personalized applications, you need to understand context: What's the user doing now? What happened recently? What's coming up? This engine makes it easy to:
+
+- **Ingest** events from any source (app activity, calendar, messages, logs, etc.)
+- **Query** contextually ("what is the user working on?") instead of just searching
+- **Build** semantic understanding with zero ML expertise
+- **Extend** with custom storage (PostgreSQL) and embeddings (OpenAI)
 
 ## Install
 
