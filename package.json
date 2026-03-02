@@ -1,6 +1,6 @@
 {
   "name": "context-engine-ai",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A general-purpose context engine for AI agents. Ingest events, build semantic context, query with natural language.",
   "type": "module",
   "main": "dist/index.js",
@@ -31,6 +31,10 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/Quinnod345/context-engine.git"
+  },
+  "homepage": "https://github.com/Quinnod345/context-engine#readme",
+  "bugs": {
+    "url": "https://github.com/Quinnod345/context-engine/issues"
   },
   "dependencies": {
     "better-sqlite3": "^11.0.0",
