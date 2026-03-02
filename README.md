@@ -2,7 +2,7 @@
 
 # context-engine-ai
 
-**Give your AI agent a memory. Ingest events, query with natural language, get context back.**
+**Real-time context for AI agents. Ingest events, query with natural language, get back what matters now.**
 
 [![npm version](https://img.shields.io/npm/v/context-engine-ai)](https://www.npmjs.com/package/context-engine-ai)
 [![CI](https://github.com/Quinnod345/context-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/Quinnod345/context-engine/actions)
@@ -11,7 +11,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org/)
 [![Node](https://img.shields.io/badge/Node-%3E%3D18-green)](https://nodejs.org/)
 
-[Try the Demo](#try-it-in-10-seconds) | [Install](#install) | [Use Cases](#use-cases) | [Quick Start](#quick-start) | [API Reference](#api-reference) | [Examples](./examples)
+[Try the Demo](#try-it-in-10-seconds) · [Install](#install) · [Quick Start](#quick-start) · [Use Cases](#use-cases) · [API Reference](#api-reference) · [Examples](./examples)
 
 </div>
 
@@ -23,7 +23,7 @@
 npx context-engine-ai demo
 ```
 
-No API keys, no database, no config. Runs a simulated developer workflow and shows how context-engine answers natural language questions about what's happening.
+No API keys. No database. No config. Runs a simulated developer workflow and shows how context-engine answers natural language questions about what's happening.
 
 ## Why?
 
@@ -60,6 +60,8 @@ const result = await ctx.query('what is the user doing?')
 | **HTTP server + CLI** | `npx context-engine-ai serve` — REST API in one command. |
 | **Full TypeScript** | Types for everything. Works great with `@ts-check`. |
 | **~64KB** | Tiny footprint. No bloat. |
+
+---
 
 ### How It Compares
 
@@ -177,7 +179,7 @@ app.get('/context', async (req, res) => {
 app.listen(4000)
 ```
 
-### More ideas
+### Other use cases
 
 - **Smart notifications** — Check what the user is doing before interrupting them
 - **Meeting prep** — Combine calendar + recent work + messages for automated briefings
@@ -285,7 +287,7 @@ git_commit   │                  dedup + prune     cosine similarity
 
 3. **Prune** — When event count exceeds `maxEvents`, the lowest-relevance oldest events are automatically removed. No maintenance required.
 
-The local embedding provider uses TF-IDF with locality-sensitive hashing projected into 128 dimensions. No network calls, deterministic, fast. When you need higher semantic quality, swap to OpenAI embeddings with one config change.
+The local embedding provider uses TF-IDF with locality-sensitive hashing projected into 128 dimensions. No network calls, deterministic, fast. Swap to OpenAI embeddings with one config change when you need higher semantic quality.
 
 ---
 
@@ -410,7 +412,7 @@ import {
 } from 'context-engine-ai'
 ```
 
-## TypeScript
+### TypeScript
 
 Full type definitions included:
 
@@ -444,6 +446,21 @@ node examples/basic.js               # library usage
 node examples/ai-agent.js            # agent integration
 ```
 
+## Requirements
+
+- Node.js >= 18
+- No external services required (default mode)
+
+---
+
+## Documentation
+
+- [Architecture Overview](./docs/architecture.md)
+- [Custom Adapters](./docs/custom-adapters.md)
+- [Deployment Guide](./docs/deployment.md)
+
+---
+
 ## Development
 
 ```bash
@@ -451,7 +468,7 @@ git clone https://github.com/Quinnod345/context-engine.git
 cd context-engine
 npm install
 npm run build     # compile TypeScript
-npm test          # run tests
+npm test          # run tests (14 passing)
 npm run dev       # watch mode
 ```
 
@@ -461,9 +478,9 @@ Contributions welcome. Open an issue or PR. Some ideas:
 
 - New storage adapters (Redis, DuckDB, Turso)
 - New embedding providers (Cohere, local ONNX models)
-- Streaming ingestion / webhooks
 - Browser extension for automatic context capture
 - MCP (Model Context Protocol) server integration
+- Streaming ingestion
 
 ## License
 
