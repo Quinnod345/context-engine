@@ -3,11 +3,13 @@ import pg from 'pg'
 
 export class PostgresStorage implements StorageAdapter {
   private pool: pg.Pool
+  private dimensions: number
 
-  constructor(connectionString?: string) {
+  constructor(connectionString?: string, dimensions = 1536) {
     this.pool = new pg.Pool({
       connectionString: connectionString || process.env.DATABASE_URL,
     })
+    this.dimensions = dimensions
   }
 
   async init(): Promise<void> {
@@ -20,7 +22,7 @@ export class PostgresStorage implements StorageAdapter {
           type TEXT NOT NULL,
           data JSONB NOT NULL,
           timestamp BIGINT NOT NULL,
-          embedding vector(1536),
+          embedding vector(${this.dimensions}),
           relevance DOUBLE PRECISION NOT NULL DEFAULT 1.0
         )
       `)
