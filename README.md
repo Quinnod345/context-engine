@@ -1,17 +1,19 @@
-# @oneiro/context-engine
+# context-engine-ai
 
-A general-purpose context engine for AI agents. Ingest events, build semantic context, and query "what's happening right now?" with natural language.
+A lightweight, general-purpose context engine for AI agents and applications. Ingest events, build semantic context, and query "what's happening right now?" with natural language.
+
+Zero dependencies. Works out of the box with SQLite + local TF-IDF embeddings.
 
 ## Install
 
 ```bash
-npm install @oneiro/context-engine
+npm install context-engine-ai
 ```
 
 ## Quick Start
 
 ```js
-import { ContextEngine } from '@oneiro/context-engine'
+import { ContextEngine } from 'context-engine-ai'
 
 const ctx = new ContextEngine()
 // Uses SQLite + local TF-IDF embeddings by default — zero config
@@ -92,4 +94,8 @@ Clean shutdown (closes DB + HTTP).
 
 ## License
 
-MIT — Oneiro <oneiro-dev@proton.me>
+MIT
+
+---
+
+Built with ❤️ for AI agents. Contributions welcome at [GitHub](https://github.com/Quinnod345/context-engine).

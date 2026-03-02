@@ -1,5 +1,5 @@
 {
-  "name": "@oneiro/context-engine",
+  "name": "context-engine-ai",
   "version": "0.1.0",
   "description": "A general-purpose context engine for AI agents. Ingest events, build semantic context, query with natural language.",
   "type": "module",
