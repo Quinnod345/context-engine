@@ -36,18 +36,18 @@ export class ContextEngine {
     this.deduplicationWindow = deduplicationWindow
     this.deduplicationThreshold = deduplicationThreshold
 
-    // Storage
-    if (storage === 'postgres') {
-      this.storage = new PostgresStorage(pgConnectionString)
-    } else {
-      this.storage = new SQLiteStorage(dbPath)
-    }
-
-    // Embeddings
+    // Embeddings (init first so storage can use dimensions)
     if (embeddingProvider === 'openai') {
       this.embedder = new OpenAIEmbeddingProvider(openaiApiKey)
     } else {
       this.embedder = new LocalEmbeddingProvider()
+    }
+
+    // Storage
+    if (storage === 'postgres') {
+      this.storage = new PostgresStorage(pgConnectionString, this.embedder.dimensions)
+    } else {
+      this.storage = new SQLiteStorage(dbPath)
     }
   }
 
