@@ -2,7 +2,7 @@
 
 # context-engine-ai
 
-**A lightweight context engine for AI agents. Ingest events, build semantic context, query with natural language.**
+**Give your AI agent a memory. Ingest events, query with natural language, get context back.**
 
 [![npm version](https://img.shields.io/npm/v/context-engine-ai)](https://www.npmjs.com/package/context-engine-ai)
 [![license](https://img.shields.io/npm/l/context-engine-ai)](./LICENSE)
@@ -11,44 +11,54 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org/)
 [![Node](https://img.shields.io/badge/Node-%3E%3D18-green)](https://nodejs.org/)
 
-[Install](#install) | [Quick Start](#quick-start) | [API Reference](#api-reference) | [Examples](./examples) | [Docs](./docs)
+[Try the Demo](#try-it-in-10-seconds) | [Install](#install) | [Quick Start](#quick-start) | [API Reference](#api-reference) | [Examples](./examples) | [Docs](./docs)
 
 </div>
 
 ---
 
+## Try It in 10 Seconds
+
+```bash
+npx context-engine-ai demo
+```
+
+That's it. No API keys, no database, no config. It runs a simulated developer workflow and shows how context-engine answers natural language questions about what's happening.
+
 ## Why?
 
-AI agents need to know what's happening *right now*. Not search results -- **context**. What app is the user in? What did they just do? What's coming up?
+Every AI agent needs to answer one question: **"What's happening right now?"**
 
-Most solutions require heavy ML infrastructure or cloud APIs just to start. `context-engine-ai` gives you semantic context with zero config:
+Not "search my vector database." Not "look up this embedding." Just: what did the user just do? What's coming up? Who messaged them?
+
+Most solutions require OpenAI keys, Pinecone accounts, or a Postgres cluster just to start. `context-engine-ai` gives you semantic context in 3 lines:
 
 ```js
 import { ContextEngine } from 'context-engine-ai'
 
-const ctx = new ContextEngine()   // SQLite + local TF-IDF -- zero config, no API keys
+const ctx = new ContextEngine()   // SQLite + local embeddings — zero config
 
 await ctx.ingest({ type: 'app_switch', data: { app: 'VS Code', file: 'main.ts' } })
 await ctx.ingest({ type: 'calendar',   data: { event: 'Standup', in: '15min' } })
 await ctx.ingest({ type: 'message',    data: { from: 'Alice', text: 'PR ready for review' } })
 
 const result = await ctx.query('what is the user doing?')
-console.log(result.summary)
-// [app_switch] app: VS Code, file: main.ts | [calendar] event: Standup, in: 15min
+// => [app_switch] app: VS Code, file: main.ts | [calendar] event: Standup, in: 15min
 ```
 
 ## Features
 
-- **Zero config default** -- SQLite + local TF-IDF embeddings. No API keys, no cloud, instant.
-- **Semantic querying** -- Natural language queries like `"what is the user working on?"` instead of keyword search.
-- **Temporal decay** -- Recent events matter more. Configurable half-life.
-- **Auto-deduplication** -- Repeated events are merged, not duplicated.
-- **Auto-pruning** -- Least relevant events are pruned when the limit is exceeded.
-- **Storage adapters** -- SQLite (default) or PostgreSQL with pgvector.
-- **Embedding providers** -- Local TF-IDF (default, 128-dim) or OpenAI `text-embedding-3-small` (1536-dim).
-- **HTTP server** -- REST API with ingest, query, and recent endpoints.
-- **CLI** -- `npx context-engine serve` with full option flags.
-- **TypeScript** -- Full type definitions for all exports.
+| Feature | Description |
+|---------|-------------|
+| **Zero config** | SQLite + local TF-IDF embeddings. No API keys, no cloud, instant startup. |
+| **Semantic querying** | Ask `"what is the user working on?"` instead of writing SQL. |
+| **Temporal decay** | Recent events rank higher. Configurable half-life. |
+| **Auto-deduplication** | Repeated events merge instead of duplicating. |
+| **Auto-pruning** | Old/irrelevant events are pruned when the limit is hit. |
+| **SQLite or Postgres** | In-memory for dev, SQLite for single-process, pgvector for production. |
+| **Local or OpenAI embeddings** | Local TF-IDF (128-dim, free) or OpenAI `text-embedding-3-small` (1536-dim). |
+| **HTTP server + CLI** | `npx context-engine-ai serve` — REST API in one command. |
+| **Full TypeScript** | Types for everything. Works great with `@ts-check`. |
 
 ## Install
 
@@ -65,21 +75,47 @@ import { ContextEngine } from 'context-engine-ai'
 
 const ctx = new ContextEngine()
 
-// Ingest events
+// Ingest events from any source
 await ctx.ingest({ type: 'app_switch', data: { app: 'VS Code', file: 'index.ts' } })
 await ctx.ingest({ type: 'calendar', data: { event: 'Team standup', in: '30min' } })
 await ctx.ingest({ type: 'message', data: { from: 'Alice', text: 'PR ready for review' } })
 
-// Semantic query
+// Query with natural language
 const result = await ctx.query('what is the user working on?')
-console.log(result.summary)   // human-readable summary
+console.log(result.summary)   // human-readable context string
 console.log(result.events)    // ranked StoredEvent[]
 
-// Recent events by timestamp
+// Get recent events
 const recent = await ctx.recent(10)
 
-// Clean up
 await ctx.close()
+```
+
+### Feed Context into an LLM
+
+The killer use case — inject real-time context into your agent's system prompt:
+
+```js
+import { ContextEngine } from 'context-engine-ai'
+import Anthropic from '@anthropic-ai/sdk'
+
+const ctx = new ContextEngine({ dbPath: './agent-memory.db' })
+const claude = new Anthropic()
+
+// Your app ingests events as they happen
+await ctx.ingest({ type: 'app_switch', data: { app: 'VS Code', file: 'auth.ts' } })
+await ctx.ingest({ type: 'message', data: { from: 'Alice', text: 'auth bug is back' } })
+
+// When the agent needs to respond, build context
+const context = await ctx.query('what is happening right now?', 5)
+
+const response = await claude.messages.create({
+  model: 'claude-sonnet-4-20250514',
+  max_tokens: 1024,
+  system: `You are a helpful coding assistant. Current context:\n${context.summary}`,
+  messages: [{ role: 'user', content: 'What should I focus on?' }],
+})
+// Claude knows about the auth bug, the file open, and Alice's message
 ```
 
 ### As an HTTP Server
@@ -92,9 +128,8 @@ ctx.serve(3334)
 Or via CLI:
 
 ```bash
-npx context-engine serve --port 3334
-npx context-engine serve --storage sqlite --db-path ./context.db
-npx context-engine serve --storage postgres --pg-url postgresql://localhost/mydb
+npx context-engine-ai serve --port 3334
+npx context-engine-ai serve --storage postgres --pg-url postgresql://localhost/mydb
 ```
 
 ### REST Endpoints
@@ -180,7 +215,7 @@ Create a new engine. See [Configuration](#configuration) for all options.
 
 ### `ctx.ingest(event): Promise<StoredEvent>`
 
-Ingest an event. Embeds the event text, checks for duplicates, stores it, and prunes if over the limit. Returns the stored (or merged) event.
+Ingest an event. Embeds the event text, checks for duplicates, stores it, and prunes if over the limit.
 
 ```ts
 interface EventInput {
@@ -200,7 +235,7 @@ interface StoredEvent {
 
 ### `ctx.query(question, limit?): Promise<ContextResult>`
 
-Semantic search across stored events. Applies temporal decay. Returns events ranked by relevance with a human-readable summary.
+Semantic search across stored events. Applies temporal decay. Returns ranked events with a human-readable summary.
 
 ```ts
 interface ContextResult {
@@ -242,7 +277,7 @@ See [docs/custom-adapters.md](./docs/custom-adapters.md) for building custom sto
 
 ## TypeScript
 
-Full type definitions are included:
+Full type definitions included:
 
 ```ts
 import type {
@@ -258,12 +293,12 @@ import type {
 ## Use Cases
 
 - **AI agent memory** -- Give your agent real-time awareness of what the user is doing
-- **Desktop context** -- Index app switches, window titles, active files
-- **Smart notifications** -- Check context before interrupting the user
-- **Meeting prep** -- Combine calendar + recent work for automated briefings
-- **Log analysis** -- Ingest structured logs, query semantically
-- **IoT / sensor fusion** -- Unify events from multiple sources into one context stream
-- **Chat context** -- Feed conversation history + user activity into LLM prompts
+- **Desktop assistants** -- Index app switches, window titles, active files for context-aware help
+- **Smart notifications** -- Check what the user is doing before interrupting them
+- **Meeting prep** -- Combine calendar + recent work + messages for automated briefings
+- **Log analysis** -- Ingest structured logs, query them with plain English
+- **IoT / sensor fusion** -- Unify events from multiple sources into one queryable context stream
+- **Chat context** -- Feed conversation history + user activity into LLM system prompts
 
 ## Examples
 
@@ -271,16 +306,34 @@ See the [`examples/`](./examples) directory:
 
 | Example | Description |
 |---------|-------------|
+| [`demo.js`](./examples/demo.js) | Interactive demo -- simulates a workflow and queries it |
 | [`basic.js`](./examples/basic.js) | Event ingestion and semantic querying |
 | [`server.js`](./examples/server.js) | Running as an HTTP service |
 | [`agent-context.js`](./examples/agent-context.js) | Feeding context into an AI agent prompt |
 | [`custom-storage.js`](./examples/custom-storage.js) | Using storage and embedding adapters directly |
 
 ```bash
-node examples/basic.js
-node examples/server.js
-node examples/agent-context.js
-node examples/custom-storage.js
+npx context-engine-ai demo          # quick interactive demo
+node examples/basic.js               # library usage
+node examples/agent-context.js       # agent integration
+```
+
+## How It Works
+
+```
+Events In          Embed           Store             Query
+─────────────┐    ┌──────┐    ┌────────────┐    ┌──────────────┐
+app_switch   │───>│TF-IDF│───>│  SQLite /   │<───│ "what is the │
+calendar     │    │  or   │    │  pgvector   │    │  user doing?"│
+message      │    │OpenAI │    │             │    └──────┬───────┘
+terminal     │    └──────┘    └────────────┘           │
+git_commit   │                  dedup + prune     cosine similarity
+─────────────┘                                    + temporal decay
+                                                       │
+                                                  ┌────▼────┐
+                                                  │ Ranked  │
+                                                  │ Context │
+                                                  └─────────┘
 ```
 
 ## Documentation
@@ -302,7 +355,13 @@ npm run dev       # watch mode
 
 ## Contributing
 
-Contributions welcome. Open an issue or PR.
+Contributions welcome. Open an issue or PR. Some ideas:
+
+- New storage adapters (Redis, DuckDB, Turso)
+- New embedding providers (Cohere, local ONNX models)
+- Streaming ingestion / webhooks
+- Browser extension for automatic context capture
+- MCP (Model Context Protocol) server integration
 
 ## License
 
