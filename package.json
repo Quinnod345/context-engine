@@ -1,12 +1,13 @@
 {
   "name": "context-engine-ai",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "A lightweight context engine for AI agents. Ingest events, build semantic context, query with natural language. Zero config default with SQLite + local TF-IDF embeddings.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "context-engine": "dist/cli.js"
+    "context-engine": "dist/cli.js",
+    "context-engine-ai": "dist/cli.js"
   },
   "exports": {
     ".": {
@@ -23,7 +24,8 @@
     "build": "tsc",
     "test": "vitest run",
     "dev": "tsc --watch",
-    "start": "node dist/cli.js serve"
+    "start": "node dist/cli.js serve",
+    "demo": "node dist/cli.js demo"
   },
   "author": "Oneiro <oneiro-dev@proton.me>",
   "license": "MIT",
