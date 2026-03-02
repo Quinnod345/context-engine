@@ -5,13 +5,13 @@
 **Give your AI agent a memory. Ingest events, query with natural language, get context back.**
 
 [![npm version](https://img.shields.io/npm/v/context-engine-ai)](https://www.npmjs.com/package/context-engine-ai)
+[![CI](https://github.com/Quinnod345/context-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/Quinnod345/context-engine/actions)
 [![license](https://img.shields.io/npm/l/context-engine-ai)](./LICENSE)
-[![tests](https://github.com/Quinnod345/context-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/Quinnod345/context-engine/actions)
 [![npm downloads](https://img.shields.io/npm/dm/context-engine-ai)](https://www.npmjs.com/package/context-engine-ai)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org/)
 [![Node](https://img.shields.io/badge/Node-%3E%3D18-green)](https://nodejs.org/)
 
-[Try the Demo](#try-it-in-10-seconds) | [Install](#install) | [Quick Start](#quick-start) | [API Reference](#api-reference) | [Examples](./examples) | [Docs](./docs)
+[Try the Demo](#try-it-in-10-seconds) | [Install](#install) | [Use Cases](#use-cases) | [Quick Start](#quick-start) | [API Reference](#api-reference) | [Examples](./examples)
 
 </div>
 
@@ -23,7 +23,7 @@
 npx context-engine-ai demo
 ```
 
-That's it. No API keys, no database, no config. It runs a simulated developer workflow and shows how context-engine answers natural language questions about what's happening.
+No API keys, no database, no config. Runs a simulated developer workflow and shows how context-engine answers natural language questions about what's happening.
 
 ## Why?
 
@@ -52,19 +52,140 @@ const result = await ctx.query('what is the user doing?')
 |---------|-------------|
 | **Zero config** | SQLite + local TF-IDF embeddings. No API keys, no cloud, instant startup. |
 | **Semantic querying** | Ask `"what is the user working on?"` instead of writing SQL. |
-| **Temporal decay** | Recent events rank higher. Configurable half-life. |
-| **Auto-deduplication** | Repeated events merge instead of duplicating. |
-| **Auto-pruning** | Old/irrelevant events are pruned when the limit is hit. |
-| **SQLite or Postgres** | In-memory for dev, SQLite for single-process, pgvector for production. |
+| **Temporal decay** | Recent events rank higher. Configurable half-life (default: 24h). |
+| **Auto-deduplication** | Repeated events merge instead of flooding your context. |
+| **Auto-pruning** | Old/irrelevant events are removed when the limit is hit. |
+| **SQLite or Postgres** | In-memory for dev, SQLite file for persistence, pgvector for production. |
 | **Local or OpenAI embeddings** | Local TF-IDF (128-dim, free) or OpenAI `text-embedding-3-small` (1536-dim). |
 | **HTTP server + CLI** | `npx context-engine-ai serve` — REST API in one command. |
 | **Full TypeScript** | Types for everything. Works great with `@ts-check`. |
+| **~64KB** | Tiny footprint. No bloat. |
+
+### How It Compares
+
+| | context-engine-ai | RAG frameworks | Custom implementation |
+|---|---|---|---|
+| Setup | `npm install`, done | Vector DB + embedding API + retrieval chain | Days of plumbing |
+| API keys required | No (local TF-IDF) | Yes (OpenAI/Cohere/etc) | Depends |
+| Temporal decay | Built-in | Manual | Build it yourself |
+| Deduplication | Built-in (cosine threshold) | Manual | Build it yourself |
+| Data model | Event-oriented `{type, data}` | Document-oriented | Your schema |
+| Storage | SQLite (zero-config) or PostgreSQL | Pinecone/Weaviate/Chroma | Your choice |
+| HTTP server | One line: `ctx.serve(3334)` | Build it | Build it |
 
 ## Install
 
 ```bash
 npm install context-engine-ai
 ```
+
+---
+
+## Use Cases
+
+### Give your AI agent situational awareness
+
+The most common use case. Your application ingests events as they happen — user actions, system alerts, messages, calendar entries — and when the agent needs to respond, it queries for relevant context to include in its prompt.
+
+```js
+import Anthropic from '@anthropic-ai/sdk'
+import { ContextEngine } from 'context-engine-ai'
+
+const ctx = new ContextEngine({ dbPath: './agent-context.db' })
+const claude = new Anthropic()
+
+// Events stream in throughout the day
+await ctx.ingest({ type: 'terminal', data: { command: 'npm test', output: '3 failed, 12 passed' } })
+await ctx.ingest({ type: 'slack',   data: { from: 'Sarah', text: 'Auth service throwing 401s in staging' } })
+await ctx.ingest({ type: 'error',   data: { service: 'auth', error: 'TokenExpiredError', count: 47 } })
+await ctx.ingest({ type: 'pr',      data: { repo: 'backend', title: 'Fix OAuth token refresh', status: 'review_requested' } })
+
+// When the agent responds, it knows what's going on
+const context = await ctx.query('what needs attention?', 5)
+
+const response = await claude.messages.create({
+  model: 'claude-sonnet-4-20250514',
+  max_tokens: 1024,
+  system: `You are a developer assistant. Current context:\n${context.summary}`,
+  messages: [{ role: 'user', content: 'What should I focus on?' }]
+})
+// Claude sees the auth errors, failing tests, and related PR — responds accordingly
+```
+
+### Build a personal activity tracker
+
+Track what you're working on across apps and query it later. The engine handles deduplication automatically — switching back and forth between two apps doesn't flood your context.
+
+```js
+import { ContextEngine } from 'context-engine-ai'
+import { execSync } from 'child_process'
+
+const ctx = new ContextEngine({ dbPath: './desktop.db', decayHours: 8 })
+
+// Poll active window every 5 seconds
+setInterval(async () => {
+  const app = execSync(
+    `osascript -e 'tell app "System Events" to get name of first process whose frontmost is true'`,
+    { encoding: 'utf-8' }
+  ).trim()
+  await ctx.ingest({ type: 'window_focus', data: { app } })
+}, 5000)
+
+// End of day: "what was I doing this afternoon?"
+const result = await ctx.query('what was I working on?')
+console.log(result.summary)
+```
+
+### Aggregate webhooks into queryable context
+
+Receive events from GitHub, Slack, PagerDuty, or any service with webhooks. Query the combined stream in natural language instead of checking each service individually.
+
+```js
+import express from 'express'
+import { ContextEngine } from 'context-engine-ai'
+
+const ctx = new ContextEngine({ dbPath: './ops.db', maxEvents: 5000, decayHours: 48 })
+const app = express()
+app.use(express.json())
+
+app.post('/webhook/github', async (req, res) => {
+  const { action, pull_request, repository } = req.body
+  await ctx.ingest({
+    type: 'github_pr',
+    data: { action, title: pull_request?.title, repo: repository?.full_name }
+  })
+  res.sendStatus(200)
+})
+
+app.post('/webhook/slack', async (req, res) => {
+  const { event } = req.body
+  if (event?.type === 'message') {
+    await ctx.ingest({
+      type: 'slack_message',
+      data: { channel: event.channel, user: event.user, text: event.text?.slice(0, 200) }
+    })
+  }
+  res.sendStatus(200)
+})
+
+// One query across all sources
+app.get('/context', async (req, res) => {
+  const result = await ctx.query(req.query.q, parseInt(req.query.limit) || 10)
+  res.json(result)
+})
+
+app.listen(4000)
+```
+
+### More ideas
+
+- **Smart notifications** — Check what the user is doing before interrupting them
+- **Meeting prep** — Combine calendar + recent work + messages for automated briefings
+- **Log analysis** — Ingest structured logs, query them with plain English
+- **IoT / sensor fusion** — Unify events from multiple sources into one queryable stream
+- **Chat context** — Feed conversation history + user activity into LLM system prompts
+
+---
 
 ## Quick Start
 
@@ -75,47 +196,32 @@ import { ContextEngine } from 'context-engine-ai'
 
 const ctx = new ContextEngine()
 
-// Ingest events from any source
-await ctx.ingest({ type: 'app_switch', data: { app: 'VS Code', file: 'index.ts' } })
-await ctx.ingest({ type: 'calendar', data: { event: 'Team standup', in: '30min' } })
-await ctx.ingest({ type: 'message', data: { from: 'Alice', text: 'PR ready for review' } })
+await ctx.ingest({ type: 'task', data: { title: 'Review PR #42', priority: 'high' } })
+await ctx.ingest({ type: 'message', data: { from: 'Alice', text: 'deploy is broken' } })
 
-// Query with natural language
-const result = await ctx.query('what is the user working on?')
-console.log(result.summary)   // human-readable context string
-console.log(result.events)    // ranked StoredEvent[]
-
-// Get recent events
-const recent = await ctx.recent(10)
+const result = await ctx.query('any issues right now?')
+console.log(result.summary)   // "[message] from: Alice, text: deploy is broken | ..."
+console.log(result.events)    // StoredEvent[] sorted by relevance
 
 await ctx.close()
 ```
 
-### Feed Context into an LLM
-
-The killer use case — inject real-time context into your agent's system prompt:
+### With Persistence
 
 ```js
-import { ContextEngine } from 'context-engine-ai'
-import Anthropic from '@anthropic-ai/sdk'
+const ctx = new ContextEngine({ dbPath: './my-context.db' })
+// Events survive restarts. Standard SQLite file — inspect with any SQLite tool.
+```
 
-const ctx = new ContextEngine({ dbPath: './agent-memory.db' })
-const claude = new Anthropic()
+### Production (PostgreSQL + pgvector)
 
-// Your app ingests events as they happen
-await ctx.ingest({ type: 'app_switch', data: { app: 'VS Code', file: 'auth.ts' } })
-await ctx.ingest({ type: 'message', data: { from: 'Alice', text: 'auth bug is back' } })
-
-// When the agent needs to respond, build context
-const context = await ctx.query('what is happening right now?', 5)
-
-const response = await claude.messages.create({
-  model: 'claude-sonnet-4-20250514',
-  max_tokens: 1024,
-  system: `You are a helpful coding assistant. Current context:\n${context.summary}`,
-  messages: [{ role: 'user', content: 'What should I focus on?' }],
+```js
+const ctx = new ContextEngine({
+  storage: 'postgres',
+  pgConnectionString: 'postgresql://user:pass@localhost:5432/mydb',
+  embeddingProvider: 'openai',
+  openaiApiKey: process.env.OPENAI_API_KEY,
 })
-// Claude knows about the auth bug, the file open, and Alice's message
 ```
 
 ### As an HTTP Server
@@ -129,7 +235,6 @@ Or via CLI:
 
 ```bash
 npx context-engine-ai serve --port 3334
-npx context-engine-ai serve --storage postgres --pg-url postgresql://localhost/mydb
 ```
 
 ### REST Endpoints
@@ -145,14 +250,44 @@ npx context-engine-ai serve --storage postgres --pg-url postgresql://localhost/m
 # Ingest
 curl -X POST http://localhost:3334/ingest \
   -H 'Content-Type: application/json' \
-  -d '{"type": "app_switch", "data": {"app": "VS Code", "file": "main.ts"}}'
+  -d '{"type": "deploy", "data": {"service": "api", "version": "2.1.0", "env": "production"}}'
 
 # Query
-curl "http://localhost:3334/context?q=what%20am%20I%20working%20on"
+curl "http://localhost:3334/context?q=recent%20deployments&limit=5"
 
 # Recent
 curl "http://localhost:3334/recent?limit=10"
 ```
+
+---
+
+## How It Works
+
+```
+Events In          Embed           Store             Query
+─────────────┐    ┌──────┐    ┌────────────┐    ┌──────────────┐
+app_switch   │───>│TF-IDF│───>│  SQLite /   │<───│ "what is the │
+calendar     │    │  or   │    │  pgvector   │    │  user doing?"│
+message      │    │OpenAI │    │             │    └──────┬───────┘
+terminal     │    └──────┘    └────────────┘           │
+git_commit   │                  dedup + prune     cosine similarity
+─────────────┘                                    + temporal decay
+                                                       │
+                                                  ┌────▼────┐
+                                                  │ Ranked  │
+                                                  │ Context │
+                                                  └─────────┘
+```
+
+1. **Ingest** — Events arrive as `{type, data}`. The engine converts them to text, generates an embedding (local TF-IDF or OpenAI), checks for near-duplicates within a configurable time window, and stores them with a relevance score.
+
+2. **Query** — Your natural language question is embedded and compared against stored events using cosine similarity. Results are weighted by temporal decay — recent events score higher than old ones, controlled by a configurable half-life.
+
+3. **Prune** — When event count exceeds `maxEvents`, the lowest-relevance oldest events are automatically removed. No maintenance required.
+
+The local embedding provider uses TF-IDF with locality-sensitive hashing projected into 128 dimensions. No network calls, deterministic, fast. When you need higher semantic quality, swap to OpenAI embeddings with one config change.
+
+---
 
 ## Configuration
 
@@ -183,7 +318,7 @@ Pass `dbPath` to persist across restarts. Without it, uses in-memory storage.
 
 ### Storage: PostgreSQL
 
-Uses [pgvector](https://github.com/pgvector/pgvector) for native vector similarity search. Better for production, multi-process, and large-scale deployments. Requires the `vector` extension.
+Uses [pgvector](https://github.com/pgvector/pgvector) for native vector similarity search. Multi-process safe, production-ready, handles millions of events. Requires the `vector` extension.
 
 ```js
 const ctx = new ContextEngine({
@@ -194,18 +329,20 @@ const ctx = new ContextEngine({
 
 ### Embeddings: Local (default)
 
-TF-IDF with locality-sensitive hashing. 128-dimensional vectors. No external calls, instant, deterministic. Good enough for most context matching use cases.
+TF-IDF with locality-sensitive hashing. 128-dimensional vectors. No external calls, instant, deterministic. Good enough for most context-matching use cases.
 
 ### Embeddings: OpenAI
 
-Uses `text-embedding-3-small` (1536-dimensional). Higher quality semantic similarity for complex queries. Requires an API key.
+Uses `text-embedding-3-small` (1536-dimensional). Higher semantic quality for complex queries. Requires an API key.
 
 ```js
 const ctx = new ContextEngine({
   embeddingProvider: 'openai',
-  openaiApiKey: 'sk-...',  // or set OPENAI_API_KEY
+  openaiApiKey: 'sk-...',  // or set OPENAI_API_KEY env var
 })
 ```
+
+---
 
 ## API Reference
 
@@ -273,8 +410,6 @@ import {
 } from 'context-engine-ai'
 ```
 
-See [docs/custom-adapters.md](./docs/custom-adapters.md) for building custom storage and embedding providers.
-
 ## TypeScript
 
 Full type definitions included:
@@ -290,15 +425,7 @@ import type {
 } from 'context-engine-ai'
 ```
 
-## Use Cases
-
-- **AI agent memory** -- Give your agent real-time awareness of what the user is doing
-- **Desktop assistants** -- Index app switches, window titles, active files for context-aware help
-- **Smart notifications** -- Check what the user is doing before interrupting them
-- **Meeting prep** -- Combine calendar + recent work + messages for automated briefings
-- **Log analysis** -- Ingest structured logs, query them with plain English
-- **IoT / sensor fusion** -- Unify events from multiple sources into one queryable context stream
-- **Chat context** -- Feed conversation history + user activity into LLM system prompts
+---
 
 ## Examples
 
@@ -306,41 +433,16 @@ See the [`examples/`](./examples) directory:
 
 | Example | Description |
 |---------|-------------|
-| [`demo.js`](./examples/demo.js) | Interactive demo -- simulates a workflow and queries it |
 | [`basic.js`](./examples/basic.js) | Event ingestion and semantic querying |
 | [`server.js`](./examples/server.js) | Running as an HTTP service |
-| [`agent-context.js`](./examples/agent-context.js) | Feeding context into an AI agent prompt |
-| [`custom-storage.js`](./examples/custom-storage.js) | Using storage and embedding adapters directly |
+| [`ai-agent.js`](./examples/ai-agent.js) | Feeding context into Claude |
+| [`webhook-server.js`](./examples/webhook-server.js) | Multi-source webhook ingestion |
 
 ```bash
 npx context-engine-ai demo          # quick interactive demo
 node examples/basic.js               # library usage
-node examples/agent-context.js       # agent integration
+node examples/ai-agent.js            # agent integration
 ```
-
-## How It Works
-
-```
-Events In          Embed           Store             Query
-─────────────┐    ┌──────┐    ┌────────────┐    ┌──────────────┐
-app_switch   │───>│TF-IDF│───>│  SQLite /   │<───│ "what is the │
-calendar     │    │  or   │    │  pgvector   │    │  user doing?"│
-message      │    │OpenAI │    │             │    └──────┬───────┘
-terminal     │    └──────┘    └────────────┘           │
-git_commit   │                  dedup + prune     cosine similarity
-─────────────┘                                    + temporal decay
-                                                       │
-                                                  ┌────▼────┐
-                                                  │ Ranked  │
-                                                  │ Context │
-                                                  └─────────┘
-```
-
-## Documentation
-
-- [Architecture Overview](./docs/architecture.md)
-- [Custom Adapters](./docs/custom-adapters.md)
-- [Deployment Guide](./docs/deployment.md)
 
 ## Development
 
