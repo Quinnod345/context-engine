@@ -105,6 +105,21 @@ Start HTTP server.
 ### `ctx.close()`
 Clean shutdown (closes DB + HTTP).
 
+## Examples
+
+See the `examples/` directory for:
+- **basic.js** — Simple event ingestion and semantic querying
+- **server.js** — Running as an HTTP service
+
+Run them:
+```bash
+# Basic example (requires compiled dist/)
+node examples/basic.js
+
+# HTTP server
+node examples/server.js
+```
+
 ## License
 
 MIT
