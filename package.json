@@ -1,7 +1,7 @@
 {
   "name": "context-engine-ai",
   "version": "0.1.1",
-  "description": "A general-purpose context engine for AI agents. Ingest events, build semantic context, query with natural language.",
+  "description": "A lightweight context engine for AI agents. Ingest events, build semantic context, query with natural language. Zero config default with SQLite + local TF-IDF embeddings.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -27,14 +27,34 @@
   },
   "author": "Oneiro <oneiro-dev@proton.me>",
   "license": "MIT",
-  "keywords": ["ai", "context", "agents", "embeddings", "semantic-search", "events"],
+  "keywords": [
+    "ai",
+    "context",
+    "context-engine",
+    "agents",
+    "ai-agents",
+    "embeddings",
+    "semantic-search",
+    "events",
+    "vector-search",
+    "tfidf",
+    "sqlite",
+    "pgvector",
+    "llm",
+    "rag",
+    "temporal-decay"
+  ],
+  "homepage": "https://github.com/Quinnod345/context-engine#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Quinnod345/context-engine.git"
+    "url": "git+https://github.com/Quinnod345/context-engine.git"
   },
-  "homepage": "https://github.com/Quinnod345/context-engine#readme",
   "bugs": {
     "url": "https://github.com/Quinnod345/context-engine/issues"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/Quinnod345"
   },
   "dependencies": {
     "better-sqlite3": "^11.0.0",

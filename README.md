@@ -1,25 +1,54 @@
+<div align="center">
+
 # context-engine-ai
+
+**A lightweight context engine for AI agents. Ingest events, build semantic context, query with natural language.**
 
 [![npm version](https://img.shields.io/npm/v/context-engine-ai)](https://www.npmjs.com/package/context-engine-ai)
 [![license](https://img.shields.io/npm/l/context-engine-ai)](./LICENSE)
-[![tests](https://img.shields.io/badge/tests-14%2F14-green)](./tests)
+[![tests](https://github.com/Quinnod345/context-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/Quinnod345/context-engine/actions)
+[![npm downloads](https://img.shields.io/npm/dm/context-engine-ai)](https://www.npmjs.com/package/context-engine-ai)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org/)
+[![Node](https://img.shields.io/badge/Node-%3E%3D18-green)](https://nodejs.org/)
 
-A lightweight, general-purpose context engine for AI agents and applications. Ingest events from any source, build semantic context, and query "what's happening right now?" with natural language.
+[Install](#install) | [Quick Start](#quick-start) | [API Reference](#api-reference) | [Examples](./examples) | [Docs](./docs)
 
-**Zero config default.** Works out of the box with SQLite + local TF-IDF embeddings. No API keys needed.
+</div>
+
+---
 
 ## Why?
 
-AI agents and personalized applications need to understand context: What's the user doing? What happened recently? What's coming up? Most solutions require heavy ML infrastructure or cloud APIs just to get started.
+AI agents need to know what's happening *right now*. Not search results -- **context**. What app is the user in? What did they just do? What's coming up?
 
-`context-engine-ai` gives you:
+Most solutions require heavy ML infrastructure or cloud APIs just to start. `context-engine-ai` gives you semantic context with zero config:
 
-- **Ingest** events from any source (app activity, calendar, messages, logs, sensors, etc.)
-- **Query** contextually ("what is the user working on?") instead of keyword searching
-- **Temporal decay** so recent events matter more than old ones
-- **Deduplication** so repeated events don't flood your context
-- **Zero dependencies for basic use** -- SQLite + local TF-IDF, no API keys
-- **Scale up** with PostgreSQL (pgvector) and OpenAI embeddings when ready
+```js
+import { ContextEngine } from 'context-engine-ai'
+
+const ctx = new ContextEngine()   // SQLite + local TF-IDF -- zero config, no API keys
+
+await ctx.ingest({ type: 'app_switch', data: { app: 'VS Code', file: 'main.ts' } })
+await ctx.ingest({ type: 'calendar',   data: { event: 'Standup', in: '15min' } })
+await ctx.ingest({ type: 'message',    data: { from: 'Alice', text: 'PR ready for review' } })
+
+const result = await ctx.query('what is the user doing?')
+console.log(result.summary)
+// [app_switch] app: VS Code, file: main.ts | [calendar] event: Standup, in: 15min
+```
+
+## Features
+
+- **Zero config default** -- SQLite + local TF-IDF embeddings. No API keys, no cloud, instant.
+- **Semantic querying** -- Natural language queries like `"what is the user working on?"` instead of keyword search.
+- **Temporal decay** -- Recent events matter more. Configurable half-life.
+- **Auto-deduplication** -- Repeated events are merged, not duplicated.
+- **Auto-pruning** -- Least relevant events are pruned when the limit is exceeded.
+- **Storage adapters** -- SQLite (default) or PostgreSQL with pgvector.
+- **Embedding providers** -- Local TF-IDF (default, 128-dim) or OpenAI `text-embedding-3-small` (1536-dim).
+- **HTTP server** -- REST API with ingest, query, and recent endpoints.
+- **CLI** -- `npx context-engine serve` with full option flags.
+- **TypeScript** -- Full type definitions for all exports.
 
 ## Install
 
@@ -29,44 +58,31 @@ npm install context-engine-ai
 
 ## Quick Start
 
+### As a Library
+
 ```js
 import { ContextEngine } from 'context-engine-ai'
 
 const ctx = new ContextEngine()
-// Uses in-memory SQLite + local TF-IDF embeddings by default
 
-// Ingest events from any source
+// Ingest events
 await ctx.ingest({ type: 'app_switch', data: { app: 'VS Code', file: 'index.ts' } })
 await ctx.ingest({ type: 'calendar', data: { event: 'Team standup', in: '30min' } })
 await ctx.ingest({ type: 'message', data: { from: 'Alice', text: 'PR ready for review' } })
 
-// Query with natural language
+// Semantic query
 const result = await ctx.query('what is the user working on?')
-console.log(result.summary)
-// => [app_switch] app: VS Code, file: index.ts | [calendar] event: Team standup, in: 30min
+console.log(result.summary)   // human-readable summary
+console.log(result.events)    // ranked StoredEvent[]
 
-// Get recent events
+// Recent events by timestamp
 const recent = await ctx.recent(10)
 
 // Clean up
 await ctx.close()
 ```
 
-## Persistent Storage
-
-By default the engine uses in-memory SQLite. Pass a `dbPath` to persist:
-
-```js
-const ctx = new ContextEngine({
-  dbPath: './my-context.db'
-})
-```
-
-Events survive restarts. The `.db` file is a standard SQLite database.
-
-## HTTP Server
-
-Run the engine as an HTTP service for multi-process or cross-language access:
+### As an HTTP Server
 
 ```js
 const ctx = new ContextEngine({ dbPath: './context.db' })
@@ -76,31 +92,30 @@ ctx.serve(3334)
 Or via CLI:
 
 ```bash
-npx context-engine-ai serve --port 3334
-npx context-engine-ai serve --port 3334 --db-path ./context.db
+npx context-engine serve --port 3334
+npx context-engine serve --storage sqlite --db-path ./context.db
+npx context-engine serve --storage postgres --pg-url postgresql://localhost/mydb
 ```
 
-### Endpoints
+### REST Endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/ingest` | Ingest an event `{ type, data }` |
-| `GET` | `/context?q=...&limit=10` | Semantic query |
-| `GET` | `/recent?limit=20` | Recent events |
-| `GET` | `/health` | Health check |
-
-### Example Requests
+| `GET`  | `/context?q=...&limit=10` | Semantic query |
+| `GET`  | `/recent?limit=20` | Recent events by timestamp |
+| `GET`  | `/health` | Health check |
 
 ```bash
-# Ingest an event
+# Ingest
 curl -X POST http://localhost:3334/ingest \
   -H 'Content-Type: application/json' \
   -d '{"type": "app_switch", "data": {"app": "VS Code", "file": "main.ts"}}'
 
-# Query context
+# Query
 curl "http://localhost:3334/context?q=what%20am%20I%20working%20on"
 
-# Get recent events
+# Recent
 curl "http://localhost:3334/recent?limit=10"
 ```
 
@@ -110,26 +125,30 @@ curl "http://localhost:3334/recent?limit=10"
 const ctx = new ContextEngine({
   // Storage
   storage: 'sqlite',              // 'sqlite' (default) or 'postgres'
-  dbPath: './context.db',          // SQLite path (default: in-memory)
-  pgConnectionString: '...',       // for PostgreSQL + pgvector
+  dbPath: './context.db',          // SQLite file path (default: in-memory)
+  pgConnectionString: '...',       // PostgreSQL connection string
 
   // Embeddings
   embeddingProvider: 'local',      // 'local' (TF-IDF, default) or 'openai'
-  openaiApiKey: '...',             // for OpenAI embeddings (or set OPENAI_API_KEY)
+  openaiApiKey: '...',             // for OpenAI (or set OPENAI_API_KEY env var)
 
   // Tuning
   maxEvents: 1000,                 // max stored events before pruning (default: 1000)
   decayHours: 24,                  // relevance half-life in hours (default: 24)
-  deduplicationWindow: 60000,      // ms window for dedup (default: 60s)
+  deduplicationWindow: 60000,      // dedup time window in ms (default: 60s)
   deduplicationThreshold: 0.95,    // cosine similarity threshold (default: 0.95)
 })
 ```
 
-### Storage Adapters
+### Storage: SQLite (default)
 
-**SQLite** (default) -- Zero config. Uses [better-sqlite3](https://github.com/WiseLibs/better-sqlite3). Stores embeddings as JSON. Good for single-process use and prototyping.
+Zero config. Uses [better-sqlite3](https://github.com/WiseLibs/better-sqlite3). Stores embeddings as JSON. Good for single-process use, prototyping, and edge deployments.
 
-**PostgreSQL** -- Uses [pgvector](https://github.com/pgvector/pgvector) for native vector similarity search. Better for production, multi-process, and large-scale use. Requires the `vector` extension.
+Pass `dbPath` to persist across restarts. Without it, uses in-memory storage.
+
+### Storage: PostgreSQL
+
+Uses [pgvector](https://github.com/pgvector/pgvector) for native vector similarity search. Better for production, multi-process, and large-scale deployments. Requires the `vector` extension.
 
 ```js
 const ctx = new ContextEngine({
@@ -138,16 +157,18 @@ const ctx = new ContextEngine({
 })
 ```
 
-### Embedding Providers
+### Embeddings: Local (default)
 
-**Local** (default) -- TF-IDF with locality-sensitive hashing. 128-dimensional. No external calls, instant, deterministic. Good enough for most use cases.
+TF-IDF with locality-sensitive hashing. 128-dimensional vectors. No external calls, instant, deterministic. Good enough for most context matching use cases.
 
-**OpenAI** -- Uses `text-embedding-3-small` (1536-dimensional). Higher quality semantic similarity. Requires an API key.
+### Embeddings: OpenAI
+
+Uses `text-embedding-3-small` (1536-dimensional). Higher quality semantic similarity for complex queries. Requires an API key.
 
 ```js
 const ctx = new ContextEngine({
   embeddingProvider: 'openai',
-  openaiApiKey: 'sk-...',
+  openaiApiKey: 'sk-...',  // or set OPENAI_API_KEY
 })
 ```
 
@@ -155,90 +176,73 @@ const ctx = new ContextEngine({
 
 ### `new ContextEngine(options?)`
 
-Create a new engine instance. See [Configuration](#configuration) for options.
+Create a new engine. See [Configuration](#configuration) for all options.
 
-### `ctx.ingest(event)` -> `Promise<StoredEvent>`
+### `ctx.ingest(event): Promise<StoredEvent>`
 
-Ingest an event. Automatically embeds, deduplicates, and stores it.
+Ingest an event. Embeds the event text, checks for duplicates, stores it, and prunes if over the limit. Returns the stored (or merged) event.
+
+```ts
+interface EventInput {
+  type: string                     // event category (e.g. 'app_switch', 'message')
+  data: Record<string, unknown>    // event payload
+}
+
+interface StoredEvent {
+  id: string
+  type: string
+  data: Record<string, unknown>
+  timestamp: number
+  embedding: number[]
+  relevance: number                // 0.0 - 1.0
+}
+```
+
+### `ctx.query(question, limit?): Promise<ContextResult>`
+
+Semantic search across stored events. Applies temporal decay. Returns events ranked by relevance with a human-readable summary.
+
+```ts
+interface ContextResult {
+  summary: string          // human-readable summary of top events
+  events: StoredEvent[]    // ranked by relevance (with decay applied)
+  query: string            // the original query
+  timestamp: number
+}
+```
+
+### `ctx.recent(limit?): Promise<StoredEvent[]>`
+
+Get the most recent events ordered by timestamp. Default limit: 20.
+
+### `ctx.serve(port?): Server`
+
+Start an Express HTTP server. Default port: 3334. Returns a Node.js `http.Server`.
+
+### `ctx.close(): Promise<void>`
+
+Clean shutdown. Closes database connections and HTTP server.
+
+### Utility Exports
 
 ```js
-const stored = await ctx.ingest({
-  type: 'app_switch',          // string -- event category
-  data: { app: 'Firefox' }     // Record<string, unknown> -- event payload
-})
-// stored.id, stored.timestamp, stored.relevance, etc.
+import {
+  SQLiteStorage,
+  PostgresStorage,
+  LocalEmbeddingProvider,
+  OpenAIEmbeddingProvider,
+  createServer,
+  cosineSimilarity,
+  computeDecay,
+  eventToText,
+} from 'context-engine-ai'
 ```
 
-### `ctx.query(question, limit?)` -> `Promise<ContextResult>`
-
-Semantic search across stored events. Returns the most relevant events with a text summary.
-
-```js
-const result = await ctx.query('what is the user doing?', 5)
-// result.summary   -- human-readable summary of top events
-// result.events    -- array of StoredEvent sorted by relevance
-// result.query     -- the original query
-// result.timestamp
-```
-
-### `ctx.recent(limit?)` -> `Promise<StoredEvent[]>`
-
-Get most recent events by timestamp.
-
-```js
-const events = await ctx.recent(20)
-```
-
-### `ctx.serve(port?)` -> `Server`
-
-Start an Express HTTP server. Returns the Node.js `http.Server` instance.
-
-```js
-const server = ctx.serve(3334)
-```
-
-### `ctx.close()` -> `Promise<void>`
-
-Clean shutdown -- closes database connections and HTTP server.
-
-## Use Cases
-
-- **AI agent context** -- Feed your agent a summary of what the user is doing right now
-- **Desktop activity tracking** -- Index app switches, window titles, active files
-- **Smart notifications** -- Query context before interrupting the user
-- **Meeting prep** -- Ingest calendar + recent work to generate briefings
-- **Log analysis** -- Ingest structured logs and query semantically
-- **IoT/sensor fusion** -- Combine events from multiple sources into unified context
-
-## Advanced: Custom Adapters
-
-You can use the storage and embedding interfaces directly:
-
-```js
-import { SQLiteStorage, LocalEmbeddingProvider, cosineSimilarity } from 'context-engine-ai'
-
-const storage = new SQLiteStorage('./custom.db')
-await storage.init()
-
-const embedder = new LocalEmbeddingProvider()
-const vec = await embedder.embed('some text')
-```
-
-## Examples
-
-See the [`examples/`](./examples) directory:
-
-- **basic.js** -- Event ingestion and semantic querying
-- **server.js** -- Running as an HTTP service
-
-```bash
-node examples/basic.js
-node examples/server.js
-```
+See [docs/custom-adapters.md](./docs/custom-adapters.md) for building custom storage and embedding providers.
 
 ## TypeScript
 
-Full TypeScript support with exported types:
+Full type definitions are included:
 
 ```ts
 import type {
@@ -247,16 +251,59 @@ import type {
   ContextResult,
   StorageAdapter,
   EmbeddingProvider,
-  EngineOptions
+  EngineOptions,
 } from 'context-engine-ai'
 ```
 
-## Requirements
+## Use Cases
 
-- Node.js >= 18
-- For PostgreSQL: `pgvector` extension installed
-- For OpenAI embeddings: valid API key
+- **AI agent memory** -- Give your agent real-time awareness of what the user is doing
+- **Desktop context** -- Index app switches, window titles, active files
+- **Smart notifications** -- Check context before interrupting the user
+- **Meeting prep** -- Combine calendar + recent work for automated briefings
+- **Log analysis** -- Ingest structured logs, query semantically
+- **IoT / sensor fusion** -- Unify events from multiple sources into one context stream
+- **Chat context** -- Feed conversation history + user activity into LLM prompts
+
+## Examples
+
+See the [`examples/`](./examples) directory:
+
+| Example | Description |
+|---------|-------------|
+| [`basic.js`](./examples/basic.js) | Event ingestion and semantic querying |
+| [`server.js`](./examples/server.js) | Running as an HTTP service |
+| [`agent-context.js`](./examples/agent-context.js) | Feeding context into an AI agent prompt |
+| [`custom-storage.js`](./examples/custom-storage.js) | Using storage and embedding adapters directly |
+
+```bash
+node examples/basic.js
+node examples/server.js
+node examples/agent-context.js
+node examples/custom-storage.js
+```
+
+## Documentation
+
+- [Architecture Overview](./docs/architecture.md)
+- [Custom Adapters](./docs/custom-adapters.md)
+- [Deployment Guide](./docs/deployment.md)
+
+## Development
+
+```bash
+git clone https://github.com/Quinnod345/context-engine.git
+cd context-engine
+npm install
+npm run build     # compile TypeScript
+npm test          # run tests
+npm run dev       # watch mode
+```
+
+## Contributing
+
+Contributions welcome. Open an issue or PR.
 
 ## License
 
-MIT
+[MIT](./LICENSE)
