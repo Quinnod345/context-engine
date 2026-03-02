@@ -68,7 +68,7 @@ const result = await ctx.query('what is the user doing right now?')
 }
 ```
 
-Events are ranked by **semantic similarity** to your query and weighted by **recency** — a 5-minute-old event scores higher than an identical one from yesterday.
+Events are ranked by **similarity** to your query and weighted by **recency** — a 5-minute-old event scores higher than an identical one from yesterday. Local TF-IDF handles keyword matching out of the box; upgrade to OpenAI embeddings for true semantic search. The `summary` string is formatted for direct injection into LLM system prompts — drop it into your agent's context and it just works.
 
 ---
 
@@ -77,7 +77,7 @@ Events are ranked by **semantic similarity** to your query and weighted by **rec
 | Feature | Description |
 |---------|-------------|
 | **Zero config** | SQLite + local TF-IDF embeddings. No API keys, no cloud, instant startup. |
-| **Semantic querying** | Ask `"what is the user working on?"` instead of writing SQL or filtering by type. |
+| **Natural language querying** | Ask `"test results?"` instead of writing SQL or filtering by type. Local TF-IDF for keyword matching; upgrade to OpenAI embeddings for true semantic search. |
 | **Temporal decay** | Recent events automatically rank higher. Configurable half-life (default: 24h). |
 | **Auto-deduplication** | Switching between two apps 50 times doesn't create 50 events — duplicates merge within a configurable time window. |
 | **Auto-pruning** | When event count exceeds your limit, the lowest-relevance oldest events are removed. No cron jobs. |
