@@ -66,6 +66,17 @@ export class LocalEmbeddingProvider implements EmbeddingProvider {
       .replace(/[^a-z0-9\s]/g, ' ')
       .split(/\s+/)
       .filter(t => t.length > 1)
+      .map(t => this.stem(t))
+  }
+
+  private stem(word: string): string {
+    if (word.length <= 3) return word
+    if (word.endsWith('ing') && word.length > 5) return word.slice(0, -3)
+    if (word.endsWith('ies') && word.length > 4) return word.slice(0, -3) + 'y'
+    if (word.endsWith('es') && word.length > 4) return word.slice(0, -2)
+    if (word.endsWith('s') && !word.endsWith('ss') && word.length > 4) return word.slice(0, -1)
+    if (word.endsWith('ed') && word.length > 4) return word.slice(0, -2)
+    return word
   }
 
   private hash(str: string): number {

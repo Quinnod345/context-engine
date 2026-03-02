@@ -39,14 +39,14 @@ program
     const engine = new ContextEngine()
 
     const events = [
-      { type: 'app_switch',  data: { app: 'VS Code', file: 'src/auth.ts', project: 'myapp' } },
-      { type: 'terminal',    data: { command: 'npm test', result: '47 passing, 2 failing' } },
-      { type: 'message',     data: { from: 'Alice', text: 'The auth bug is back', app: 'Slack' } },
-      { type: 'browser',     data: { url: 'https://oauth.net/2/', title: 'OAuth 2.0 docs' } },
-      { type: 'calendar',    data: { event: 'Sprint Review', in: '25 minutes' } },
-      { type: 'code_save',   data: { file: 'src/auth.ts', lines_changed: 14, action: 'fix token refresh' } },
-      { type: 'terminal',    data: { command: 'npm test', result: '49 passing, 0 failing' } },
-      { type: 'git_commit',  data: { message: 'fix: token refresh race condition', files: 3 } },
+      { type: 'editor',    data: { app: 'VS Code', file: 'src/auth.ts', project: 'backend' } },
+      { type: 'test',      data: { command: 'npm test', result: '47 passed, 2 failed' } },
+      { type: 'message',   data: { from: 'Alice', via: 'Slack', text: 'auth token bug is back' } },
+      { type: 'browser',   data: { url: 'oauth.net/2', title: 'OAuth 2.0 docs' } },
+      { type: 'meeting',   data: { title: 'Sprint Review', starts_in: '25 minutes' } },
+      { type: 'editor',    data: { app: 'VS Code', file: 'src/auth.ts', change: 'fix token refresh' } },
+      { type: 'test',      data: { command: 'npm test', result: '49 passed, 0 failed' } },
+      { type: 'commit',    data: { message: 'fix: token refresh race condition', files: 3 } },
     ]
 
     console.log('\n  context-engine demo\n')
@@ -54,16 +54,16 @@ program
 
     for (const event of events) {
       await engine.ingest(event)
-      const label = `[${event.type}]`.padEnd(14)
+      const label = `[${event.type}]`.padEnd(12)
       const detail = Object.entries(event.data).map(([k, v]) => `${k}: ${v}`).join(', ')
       console.log(`    ${label} ${detail}`)
     }
 
     const questions = [
-      'what is the user working on?',
-      'are there any upcoming meetings?',
-      'what messages need attention?',
-      'did tests pass?',
+      'messages from slack?',
+      'next meeting?',
+      'test results?',
+      'latest commit?',
     ]
 
     console.log(`\n  ${events.length} events ingested. Querying...\n`)
