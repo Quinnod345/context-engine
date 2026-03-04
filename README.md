@@ -27,6 +27,42 @@ npx context-engine-ai demo
 
 No API keys. No database. No config. Runs a simulated developer workflow and shows how context-engine answers natural language questions about what's happening.
 
+<details>
+<summary>See demo output</summary>
+
+```
+  context-engine demo
+
+  Simulating developer workflow...
+
+    [editor]     app: VS Code, file: src/auth.ts, project: backend
+    [test]       command: npm test, result: 47 passed, 2 failed
+    [message]    from: Alice, via: Slack, text: auth token bug is back
+    [browser]    url: oauth.net/2, title: OAuth 2.0 docs
+    [meeting]    title: Sprint Review, starts_in: 25 minutes
+    [editor]     app: VS Code, file: src/auth.ts, change: fix token refresh
+    [test]       command: npm test, result: 49 passed, 0 failed
+    [commit]     message: fix: token refresh race condition, files: 3
+
+  8 events ingested. Querying...
+
+  Q: "messages from slack?"
+  A: [message] from: Alice, via: Slack, text: auth token bug is back
+
+  Q: "next meeting?"
+  A: [meeting] title: Sprint Review, starts_in: 25 minutes
+
+  Q: "test results?"
+  A: [test] command: npm test, result: 47 passed, 2 failed | [test] command: npm test, result: 49 passed, 0 failed
+
+  Q: "latest commit?"
+  A: [commit] message: fix: token refresh race condition, files: 3
+
+  Zero config. Zero API keys. Just context.
+```
+
+</details>
+
 ---
 
 ## The Problem
@@ -500,6 +536,7 @@ node examples/ai-agent.js            # Agent integration (needs ANTHROPIC_API_KE
 
 ## Documentation
 
+- [Quick Start Guide](./docs/quick-start.md) — running in under 2 minutes
 - [Architecture Overview](./docs/architecture.md)
 - [Custom Adapters](./docs/custom-adapters.md)
 - [Deployment Guide](./docs/deployment.md)
