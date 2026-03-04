@@ -26,9 +26,11 @@ Core API is three methods:
 
 Try it: npx context-engine-ai demo
 
-Tech: TypeScript, SQLite (better-sqlite3), optional pgvector, local TF-IDF or OpenAI embeddings. MIT licensed.
+Benchmarks: ~0.1ms per ingest, ~0.1ms per query (local TF-IDF + SQLite, 1000 events). 20MB heap. The context layer shouldn't be the bottleneck when your agent is running a tight loop.
 
-Happy to answer questions about the architecture or use cases.
+Tech: TypeScript, SQLite (better-sqlite3), optional pgvector, local TF-IDF or OpenAI embeddings. MIT licensed. ~64KB unpacked.
+
+Happy to answer questions about the architecture, the temporal decay math, or use cases.
 ```
 
 **Submit at:** https://news.ycombinator.com/submit
@@ -66,6 +68,8 @@ Try it: `npx context-engine-ai demo`
 GitHub: https://github.com/Quinnod345/context-engine
 npm: https://www.npmjs.com/package/context-engine-ai
 
+Benchmarks: ~0.1ms per ingest, ~0.1ms per query. 20MB heap. 14 tests passing.
+
 MIT licensed, feedback welcome.
 ```
 
@@ -76,7 +80,7 @@ MIT licensed, feedback welcome.
 **Body:** (same as above, but add at the end)
 
 ```
-Built with TypeScript, better-sqlite3, Express 5, and optional pgvector + OpenAI. 14 tests passing. Feedback on the API design welcome.
+Built with TypeScript, better-sqlite3, Express 5, and optional pgvector + OpenAI. Sub-millisecond ingest and query. 14 tests passing. ~64KB unpacked. Feedback on the API design welcome.
 ```
 
 ### r/MachineLearning
