@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>context-engine-ai — Interactive Demo</title>
+  <meta name="description" content="Give your AI agent a memory of what just happened. Ingest events, query with natural language. Zero config — SQLite + local embeddings, no API keys." />
+  <meta property="og:title" content="context-engine-ai — Interactive Demo" />
+  <meta property="og:description" content="Give your AI agent a memory. Zero config. Semantic search with temporal decay." />
+  <meta property="og:url" content="https://quinnod345.github.io/context-engine/" />
+  <style>
+    :root {
+      --bg: #0d1117;
+      --bg2: #161b22;
+      --bg3: #21262d;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #7d8590;
+      --green: #3fb950;
+      --green-dim: #238636;
+      --blue: #58a6ff;
+      --orange: #d29922;
+      --purple: #bc8cff;
+      --red: #f85149;
+      --cyan: #39d353;
+      --mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+      --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Header ─────────────────────────────────── */
+    .header {
+      border-bottom: 1px solid var(--border);
+      padding: 40px 24px 32px;
+      text-align: center;
+    }
+    .header h1 {
+      font-family: var(--mono);
+      font-size: clamp(22px, 4vw, 36px);
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.5px;
+    }
+    .header h1 span { color: var(--green); }
+    .tagline {
+      font-size: 18px;
+      color: var(--text-muted);
+      margin: 12px 0 20px;
+    }
+    .install-cmd {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--green);
+      margin-bottom: 20px;
+    }
+    .install-cmd .prompt { color: var(--text-muted); }
+    .badges {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: border-color 0.15s;
+    }
+    .badge:hover { border-color: var(--blue); color: var(--text); text-decoration: none; }
+    .badge .val { color: var(--text); font-weight: 600; }
+
+    /* ── Main Demo ───────────────────────────────── */
+    .demo-wrap {
+      max-width: 1100px;
+      margin: 32px auto;
+      padding: 0 24px;
+    }
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 720px) {
+      .demo-grid { grid-template-columns: 1fr; }
+    }
+    .panel {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .panel-header .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ── Event Feed ──────────────────────────────── */
+    .feed {
+      padding: 12px;
+      min-height: 340px;
+      max-height: 340px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .feed::-webkit-scrollbar { width: 4px; }
+    .feed::-webkit-scrollbar-track { background: transparent; }
+    .feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .event-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
+      animation: slideIn 0.3s ease;
+      position: relative;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .event-card.highlighted {
+      border-color: var(--green);
+      box-shadow: 0 0 0 1px rgba(63, 185, 80, 0.2);
+    }
+    .event-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .type-badge {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 0.3px;
+    }
+    .type-app_switch  { background: rgba(88, 166, 255, 0.15); color: #58a6ff; border: 1px solid rgba(88, 166, 255, 0.3); }
+    .type-test        { background: rgba(248, 81, 73, 0.15);  color: #f85149; border: 1px solid rgba(248, 81, 73, 0.3); }
+    .type-message     { background: rgba(63, 185, 80, 0.15);  color: #3fb950; border: 1px solid rgba(63, 185, 80, 0.3); }
+    .type-browser     { background: rgba(210, 153, 34, 0.15); color: #d29922; border: 1px solid rgba(210, 153, 34, 0.3); }
+    .type-calendar    { background: rgba(188, 140, 255, 0.15);color: #bc8cff; border: 1px solid rgba(188, 140, 255, 0.3); }
+    .type-commit      { background: rgba(57, 211, 83, 0.15);  color: #39d353; border: 1px solid rgba(57, 211, 83, 0.3); }
+    .type-terminal    { background: rgba(125, 133, 144, 0.15);color: #7d8590; border: 1px solid rgba(125, 133, 144, 0.3); }
+    .type-error       { background: rgba(248, 81, 73, 0.2);   color: #ff7b72; border: 1px solid rgba(248, 81, 73, 0.4); }
+    .type-default     { background: rgba(125, 133, 144, 0.15);color: #7d8590; border: 1px solid rgba(125, 133, 144, 0.3); }
+    .event-age {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--mono);
+    }
+    .event-data {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .event-data .key { color: var(--text); }
+    .feed-footer {
+      padding: 8px 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      color: var(--text);
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .btn:hover { border-color: var(--blue); background: var(--bg); }
+    .btn-green { background: var(--green-dim); border-color: var(--green); color: #fff; }
+    .btn-green:hover { background: #2ea043; }
+    .btn-sm { padding: 4px 10px; font-size: 11px; }
+    .counter {
+      margin-left: auto;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      align-self: center;
+    }
+
+    /* ── Query Panel ─────────────────────────────── */
+    .query-area {
+      padding: 12px;
+    }
+    .query-input-wrap {
+      position: relative;
+      margin-bottom: 12px;
+    }
+    .query-input {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 80px 10px 14px;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .query-input:focus { border-color: var(--blue); }
+    .query-input::placeholder { color: var(--text-muted); }
+    .run-btn {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .preset-queries {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .preset-btn {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-family: var(--mono);
+      transition: all 0.15s;
+    }
+    .preset-btn:hover { border-color: var(--blue); color: var(--text); }
+    .results-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .results-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-height: 200px;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+    .results-list::-webkit-scrollbar { width: 4px; }
+    .results-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .result-item {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
+      animation: slideIn 0.25s ease;
+    }
+    .result-item.top-result { border-color: rgba(63, 185, 80, 0.4); }
+    .result-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .score-bar-wrap {
+      flex: 1;
+      height: 4px;
+      background: var(--bg);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .score-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--green-dim), var(--green));
+      border-radius: 2px;
+      transition: width 0.4s ease;
+    }
+    .score-val {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      min-width: 38px;
+      text-align: right;
+    }
+    .result-data {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .no-results {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 80px;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-style: italic;
+    }
+    .summary-box {
+      margin-top: 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+    .summary-box .label { color: var(--blue); font-weight: 600; }
+
+    /* ── Code section ────────────────────────────── */
+    .code-section {
+      max-width: 1100px;
+      margin: 32px auto 0;
+      padding: 0 24px;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .code-tabs {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .code-tab-btn {
+      flex: 1;
+      padding: 10px;
+      background: var(--bg2);
+      border: none;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      border-right: 1px solid var(--border);
+      transition: all 0.15s;
+    }
+    .code-tab-btn:last-child { border-right: none; }
+    .code-tab-btn.active { background: var(--bg3); color: var(--text); }
+    .code-block {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 10px 10px;
+      padding: 20px;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.7;
+      overflow-x: auto;
+      display: none;
+    }
+    .code-block.active { display: block; }
+    .code-block .kw  { color: #ff7b72; }
+    .code-block .fn  { color: #d2a8ff; }
+    .code-block .str { color: #a5d6ff; }
+    .code-block .cm  { color: #7d8590; font-style: italic; }
+    .code-block .obj { color: #79c0ff; }
+    .code-block .num { color: #f0883e; }
+
+    /* ── Features ────────────────────────────────── */
+    .features-section {
+      max-width: 1100px;
+      margin: 32px auto;
+      padding: 0 24px 48px;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .feature-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .feature-icon {
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+    .feature-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .feature-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* ── Footer ──────────────────────────────────── */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 24px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .footer a { color: var(--blue); }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────── -->
+<div class="header">
+  <h1><span>context-engine-ai</span></h1>
+  <p class="tagline">Give your AI agent a memory of what just happened.</p>
+  <div style="margin-bottom: 16px;">
+    <div class="install-cmd">
+      <span class="prompt">$</span>
+      <span>npm install context-engine-ai</span>
+    </div>
+  </div>
+  <div class="badges">
+    <a href="https://www.npmjs.com/package/context-engine-ai" class="badge" target="_blank">
+      npm <span class="val">0.2.2</span>
+    </a>
+    <a href="https://github.com/Quinnod345/context-engine" class="badge" target="_blank">
+      GitHub <span class="val">★ Star</span>
+    </a>
+    <a href="https://github.com/Quinnod345/context-engine/actions" class="badge" target="_blank">
+      CI <span class="val" style="color: var(--green);">passing</span>
+    </a>
+    <span class="badge">License <span class="val">MIT</span></span>
+    <span class="badge">TypeScript <span class="val">5.7</span></span>
+    <span class="badge">Node <span class="val">&ge;18</span></span>
+  </div>
+</div>
+
+<!-- ── Demo ───────────────────────────────────── -->
+<div class="demo-wrap">
+  <div class="demo-grid">
+
+    <!-- Left: Event Feed -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="dot"></div>
+        Event Feed
+        <span style="margin-left:auto; font-weight:400; font-size:11px;">ctx.ingest()</span>
+      </div>
+      <div class="feed" id="feed"></div>
+      <div class="feed-footer">
+        <button class="btn btn-green btn-sm" onclick="addRandomEvent()">+ Ingest event</button>
+        <button class="btn btn-sm" onclick="resetDemo()">Reset</button>
+        <span class="counter" id="counter">0 events</span>
+      </div>
+    </div>
+
+    <!-- Right: Query -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="dot" style="background: var(--blue);"></div>
+        Query Context
+        <span style="margin-left:auto; font-weight:400; font-size:11px;">ctx.query()</span>
+      </div>
+      <div class="query-area">
+        <div class="query-input-wrap">
+          <input
+            class="query-input"
+            id="queryInput"
+            type="text"
+            placeholder='e.g. "what is the user working on?"'
+            value="what is the user working on?"
+          />
+          <button class="btn btn-sm run-btn" onclick="runQuery()">Run ↵</button>
+        </div>
+        <div class="preset-queries" id="presets"></div>
+        <div class="results-label">Results</div>
+        <div class="results-list" id="results">
+          <div class="no-results">Ingest some events, then run a query.</div>
+        </div>
+        <div id="summary-wrap"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Code Section ───────────────────────────── -->
+<div class="code-section">
+  <div class="section-title">Three methods. That's the whole API.</div>
+  <div>
+    <div class="code-tabs">
+      <button class="code-tab-btn active" onclick="showTab('basic')">Basic</button>
+      <button class="code-tab-btn" onclick="showTab('agent')">AI Agent</button>
+      <button class="code-tab-btn" onclick="showTab('server')">HTTP Server</button>
+      <button class="code-tab-btn" onclick="showTab('postgres')">Production</button>
+    </div>
+    <div class="code-block active" id="tab-basic">
+<span class="kw">import</span> { <span class="obj">ContextEngine</span> } <span class="kw">from</span> <span class="str">'context-engine-ai'</span>
+
+<span class="kw">const</span> ctx = <span class="kw">new</span> <span class="fn">ContextEngine</span>()  <span class="cm">// SQLite + local TF-IDF, zero config</span>
+
+<span class="kw">await</span> ctx.<span class="fn">ingest</span>({ type: <span class="str">'app_switch'</span>, data: { app: <span class="str">'VS Code'</span>, file: <span class="str">'auth.ts'</span> } })
+<span class="kw">await</span> ctx.<span class="fn">ingest</span>({ type: <span class="str">'message'</span>,   data: { from: <span class="str">'Alice'</span>, text: <span class="str">'auth bug is back'</span> } })
+<span class="kw">await</span> ctx.<span class="fn">ingest</span>({ type: <span class="str">'test'</span>,      data: { result: <span class="str">'3 failed, 12 passed'</span> } })
+
+<span class="kw">const</span> result = <span class="kw">await</span> ctx.<span class="fn">query</span>(<span class="str">'what needs attention?'</span>)
+console.<span class="fn">log</span>(result.summary)
+<span class="cm">// "[message] from: Alice, text: auth bug is back | [test] result: 3 failed ..."</span>
+
+<span class="kw">await</span> ctx.<span class="fn">close</span>()
+    </div>
+    <div class="code-block" id="tab-agent">
+<span class="kw">import</span> <span class="obj">Anthropic</span> <span class="kw">from</span> <span class="str">'@anthropic-ai/sdk'</span>
+<span class="kw">import</span> { <span class="obj">ContextEngine</span> } <span class="kw">from</span> <span class="str">'context-engine-ai'</span>
+
+<span class="kw">const</span> ctx    = <span class="kw">new</span> <span class="fn">ContextEngine</span>({ dbPath: <span class="str">'./agent.db'</span> })
+<span class="kw">const</span> claude = <span class="kw">new</span> <span class="fn">Anthropic</span>()
+
+<span class="cm">// Events stream in from your app, sensors, webhooks...</span>
+<span class="kw">await</span> ctx.<span class="fn">ingest</span>({ type: <span class="str">'error'</span>,   data: { service: <span class="str">'auth'</span>, error: <span class="str">'TokenExpiredError'</span>, count: <span class="num">47</span> } })
+<span class="kw">await</span> ctx.<span class="fn">ingest</span>({ type: <span class="str">'slack'</span>,   data: { from: <span class="str">'Sarah'</span>, text: <span class="str">'staging is throwing 401s'</span> } })
+<span class="kw">await</span> ctx.<span class="fn">ingest</span>({ type: <span class="str">'calendar'</span>,data: { event: <span class="str">'Sprint review'</span>, in: <span class="str">'25min'</span> } })
+
+<span class="cm">// Get relevant context for the agent</span>
+<span class="kw">const</span> context = <span class="kw">await</span> ctx.<span class="fn">query</span>(<span class="str">'what needs attention?'</span>, <span class="num">5</span>)
+
+<span class="kw">const</span> response = <span class="kw">await</span> claude.messages.<span class="fn">create</span>({
+  model: <span class="str">'claude-sonnet-4-20250514'</span>,
+  max_tokens: <span class="num">1024</span>,
+  system: `You are a developer assistant. Current context:\n${context.summary}`,
+  messages: [{ role: <span class="str">'user'</span>, content: <span class="str">'What should I focus on?'</span> }]
+})
+<span class="cm">// Claude sees the auth errors, Slack message, and upcoming sprint review</span>
+    </div>
+    <div class="code-block" id="tab-server">
+<span class="kw">import</span> { <span class="obj">ContextEngine</span> } <span class="kw">from</span> <span class="str">'context-engine-ai'</span>
+
+<span class="kw">const</span> ctx = <span class="kw">new</span> <span class="fn">ContextEngine</span>({ dbPath: <span class="str">'./context.db'</span> })
+ctx.<span class="fn">serve</span>(<span class="num">3334</span>)  <span class="cm">// REST API: POST /ingest, GET /context?q=..., GET /recent</span>
+
+<span class="cm">// Or via CLI — no code needed:</span>
+<span class="cm">// npx context-engine-ai serve --port 3334</span>
+<span class="cm">// npx context-engine-ai demo</span>
+
+<span class="cm">// Ingest from any source:</span>
+<span class="cm">// curl -X POST http://localhost:3334/ingest \</span>
+<span class="cm">//   -H 'Content-Type: application/json' \</span>
+<span class="cm">//   -d '{"type": "deploy", "data": {"service": "api", "env": "prod"}}'</span>
+
+<span class="cm">// Query with natural language:</span>
+<span class="cm">// curl "http://localhost:3334/context?q=recent+deployments"</span>
+    </div>
+    <div class="code-block" id="tab-postgres">
+<span class="kw">import</span> { <span class="obj">ContextEngine</span> } <span class="kw">from</span> <span class="str">'context-engine-ai'</span>
+
+<span class="cm">// Scale to production: PostgreSQL + pgvector + OpenAI embeddings</span>
+<span class="kw">const</span> ctx = <span class="kw">new</span> <span class="fn">ContextEngine</span>({
+  storage:            <span class="str">'postgres'</span>,
+  pgConnectionString: process.env.<span class="obj">DATABASE_URL</span>,
+
+  embeddingProvider:  <span class="str">'openai'</span>,
+  openaiApiKey:       process.env.<span class="obj">OPENAI_API_KEY</span>,
+
+  maxEvents:          <span class="num">50000</span>,
+  decayHours:         <span class="num">72</span>,
+})
+
+<span class="cm">// Same API — just a config change.</span>
+<span class="kw">await</span> ctx.<span class="fn">ingest</span>({ type: <span class="str">'event'</span>, data: { key: <span class="str">'value'</span> } })
+<span class="kw">const</span> result = <span class="kw">await</span> ctx.<span class="fn">query</span>(<span class="str">'query in natural language'</span>)
+    </div>
+  </div>
+</div>
+
+<!-- ── Features ───────────────────────────────── -->
+<div class="features-section">
+  <div class="section-title" style="margin-top: 32px;">Why context-engine-ai</div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">Zero config</div>
+      <div class="feature-desc">SQLite + local TF-IDF out of the box. No API keys, no cloud, no database setup. Works in 3 lines.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⏱️</div>
+      <div class="feature-title">Temporal decay</div>
+      <div class="feature-desc">Recent events rank higher. A 5-minute-old event scores 8× higher than an identical one from 3 days ago.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔁</div>
+      <div class="feature-title">Auto-deduplication</div>
+      <div class="feature-desc">Switching between two apps 50 times creates 2 events, not 50. Configurable cosine threshold.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔍</div>
+      <div class="feature-title">Semantic querying</div>
+      <div class="feature-desc">Ask "any errors?" in plain English — no SQL, no type filtering. Local TF-IDF or OpenAI embeddings.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📡</div>
+      <div class="feature-title">MCP server</div>
+      <div class="feature-desc">Works as a Model Context Protocol tool server — plug into Claude Desktop, Cursor, or Windsurf.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🚀</div>
+      <div class="feature-title">~0.1ms latency</div>
+      <div class="feature-desc">Ingest and query both run in ~0.1ms locally. 20MB heap. Not the bottleneck in your agent loop.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Footer ─────────────────────────────────── -->
+<div class="footer">
+  <a href="https://github.com/Quinnod345/context-engine" target="_blank">GitHub</a> ·
+  <a href="https://www.npmjs.com/package/context-engine-ai" target="_blank">npm</a> ·
+  MIT License ·
+  Built by <a href="https://github.com/Quinnod345" target="_blank">Quinn O'Donnell</a>
+</div>
+
+<script>
+// ── Simplified context engine (runs in browser) ──────────────────────────────
+
+const DIMS = 64;
+
+function hash(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+function tokenize(text) {
+  return text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(t => t.length > 1);
+}
+
+function embed(text) {
+  const tokens = tokenize(text);
+  const tf = {};
+  for (const t of tokens) tf[t] = (tf[t] || 0) + 1;
+  const vec = new Array(DIMS).fill(0);
+  for (const [token, count] of Object.entries(tf)) {
+    const w = count / tokens.length;
+    const h1 = hash(token) % DIMS;
+    const h2 = hash(token + '_2') % DIMS;
+    const s1 = hash(token + '_s1') % 2 === 0 ? 1 : -1;
+    const s2 = hash(token + '_s2') % 2 === 0 ? 1 : -1;
+    vec[h1] += w * s1;
+    vec[h2] += w * s2;
+  }
+  let norm = 0;
+  for (const x of vec) norm += x * x;
+  norm = Math.sqrt(norm);
+  return norm === 0 ? vec : vec.map(x => x / norm);
+}
+
+function cosine(a, b) {
+  let dot = 0;
+  for (let i = 0; i < a.length; i++) dot += a[i] * b[i];
+  return Math.max(0, dot);
+}
+
+function decay(timestamp, now, halfLifeHours = 24) {
+  const ageHours = (now - timestamp) / (1000 * 60 * 60);
+  return Math.pow(0.5, ageHours / halfLifeHours);
+}
+
+function eventToText(type, data) {
+  return [`event:${type}`, ...Object.entries(data).map(([k, v]) => `${k}:${v}`)].join(' ');
+}
+
+// ── Event store ───────────────────────────────────────────────────────────────
+
+let events = [];
+
+function ingestEvent(type, data) {
+  const text = eventToText(type, data);
+  const embedding = embed(text);
+  const existing = events.find(e =>
+    e.type === type && cosine(e.embedding, embedding) > 0.95 &&
+    Date.now() - e.timestamp < 60000
+  );
+  if (existing) {
+    existing.timestamp = Date.now();
+    return existing;
+  }
+  const ev = { id: Math.random().toString(36).slice(2), type, data, text, embedding, timestamp: Date.now(), relevance: 1.0 };
+  events.push(ev);
+  return ev;
+}
+
+function queryContext(q, limit = 5) {
+  if (events.length === 0) return [];
+  const qEmb = embed(q);
+  const now = Date.now();
+  return events
+    .map(e => ({ ...e, score: cosine(qEmb, e.embedding) * e.relevance * decay(e.timestamp, now, 24) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+}
+
+// ── Pre-defined event scenarios ───────────────────────────────────────────────
+
+const SCENARIOS = [
+  [
+    { type: 'app_switch', data: { app: 'VS Code', file: 'src/auth.ts', project: 'backend' } },
+    { type: 'terminal',   data: { command: 'npm test', result: '47 passed, 2 failed' } },
+    { type: 'message',    data: { from: 'Alice', via: 'Slack', text: 'auth token bug is back' } },
+    { type: 'browser',    data: { url: 'oauth.net/2', title: 'OAuth 2.0 docs' } },
+    { type: 'calendar',   data: { title: 'Sprint Review', starts_in: '25 minutes' } },
+    { type: 'app_switch', data: { app: 'VS Code', file: 'src/auth.ts', change: 'fix token refresh' } },
+    { type: 'test',       data: { command: 'npm test', result: '49 passed, 0 failed' } },
+    { type: 'commit',     data: { message: 'fix: token refresh race condition', files: 3 } },
+  ],
+  [
+    { type: 'app_switch', data: { app: 'VS Code', file: 'api/routes.ts', project: 'api-server' } },
+    { type: 'error',      data: { service: 'auth', error: 'TokenExpiredError', count: 47 } },
+    { type: 'message',    data: { from: 'Sarah', via: 'Slack', text: 'staging is throwing 401s' } },
+    { type: 'browser',    data: { url: 'github.com/issues/204', title: 'Token refresh bug' } },
+    { type: 'terminal',   data: { command: 'docker logs auth-service', lines: 200 } },
+    { type: 'commit',     data: { message: 'hotfix: extend token TTL to 7 days', branch: 'hotfix/auth' } },
+    { type: 'calendar',   data: { title: 'Incident postmortem', starts_in: '1 hour' } },
+  ]
+];
+
+let scenarioIdx = 0;
+let eventIdx = 0;
+let autoTimer = null;
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+
+const TYPE_CLASSES = {
+  app_switch: 'type-app_switch', test: 'type-test', message: 'type-message',
+  browser: 'type-browser', calendar: 'type-calendar', commit: 'type-commit',
+  terminal: 'type-terminal', error: 'type-error',
+};
+
+function typeBadge(type) {
+  const cls = TYPE_CLASSES[type] || 'type-default';
+  return `<span class="type-badge ${cls}">${type}</span>`;
+}
+
+function formatAge(ts) {
+  const s = Math.round((Date.now() - ts) / 1000);
+  if (s < 5)  return 'just now';
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.round(s/60)}m ago`;
+  return `${Math.round(s/3600)}h ago`;
+}
+
+function formatData(data) {
+  return Object.entries(data)
+    .filter(([k]) => !k.startsWith('_'))
+    .map(([k, v]) => `<span class="key">${k}:</span> ${v}`)
+    .join('  ');
+}
+
+function renderFeed() {
+  const feed = document.getElementById('feed');
+  const counter = document.getElementById('counter');
+  counter.textContent = `${events.length} event${events.length !== 1 ? 's' : ''}`;
+  const html = [...events].reverse().map((e, i) => `
+    <div class="event-card ${i === 0 ? 'highlighted' : ''}">
+      <div class="event-top">
+        ${typeBadge(e.type)}
+        <span class="event-age">${formatAge(e.timestamp)}</span>
+      </div>
+      <div class="event-data">${formatData(e.data)}</div>
+    </div>
+  `).join('');
+  feed.innerHTML = html || '<div class="no-results" style="padding:20px;color:var(--text-muted);font-size:13px">No events yet — click "+ Ingest event"</div>';
+}
+
+function renderResults(results) {
+  const el = document.getElementById('results');
+  const sw = document.getElementById('summary-wrap');
+  if (!results || results.length === 0) {
+    el.innerHTML = '<div class="no-results">No matching events.</div>';
+    sw.innerHTML = '';
+    return;
+  }
+  const maxScore = results[0].score;
+  el.innerHTML = results.map((r, i) => `
+    <div class="result-item ${i === 0 ? 'top-result' : ''}">
+      <div class="result-top">
+        ${typeBadge(r.type)}
+        <div class="score-bar-wrap">
+          <div class="score-bar" style="width: ${maxScore > 0 ? Math.round((r.score/maxScore)*100) : 0}%"></div>
+        </div>
+        <span class="score-val">${r.score.toFixed(3)}</span>
+      </div>
+      <div class="result-data">${formatData(r.data)}</div>
+    </div>
+  `).join('');
+
+  const summary = results.slice(0, 3)
+    .map(r => `[${r.type}] ${Object.entries(r.data).filter(([k]) => !k.startsWith('_')).map(([k,v]) => `${k}: ${v}`).join(', ')}`)
+    .join(' | ');
+  sw.innerHTML = `<div class="summary-box"><span class="label">result.summary</span><br>${summary}</div>`;
+}
+
+function runQuery() {
+  const q = document.getElementById('queryInput').value.trim();
+  if (!q) return;
+  renderResults(queryContext(q));
+}
+
+function addRandomEvent() {
+  const scenario = SCENARIOS[scenarioIdx];
+  if (eventIdx < scenario.length) {
+    const { type, data } = scenario[eventIdx++];
+    ingestEvent(type, data);
+    renderFeed();
+    // Auto-run current query
+    const q = document.getElementById('queryInput').value.trim();
+    if (q && events.length > 0) renderResults(queryContext(q));
+  } else {
+    scenarioIdx = (scenarioIdx + 1) % SCENARIOS.length;
+    eventIdx = 0;
+    addRandomEvent();
+  }
+}
+
+function resetDemo() {
+  events = [];
+  eventIdx = 0;
+  renderFeed();
+  document.getElementById('results').innerHTML = '<div class="no-results">Ingest some events, then run a query.</div>';
+  document.getElementById('summary-wrap').innerHTML = '';
+}
+
+// ── Preset queries ────────────────────────────────────────────────────────────
+
+const PRESETS = [
+  'what is the user working on?',
+  'any errors or failures?',
+  'messages from slack?',
+  'next meeting?',
+  'latest commit?',
+  'test results?',
+];
+
+function setQuery(q) {
+  document.getElementById('queryInput').value = q;
+  runQuery();
+}
+
+document.getElementById('presets').innerHTML = PRESETS.map(q =>
+  `<button class="preset-btn" onclick="setQuery('${q}')">${q}</button>`
+).join('');
+
+// ── Code tabs ─────────────────────────────────────────────────────────────────
+
+function showTab(name) {
+  document.querySelectorAll('.code-block').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.code-tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── Enter key support ─────────────────────────────────────────────────────────
+
+document.getElementById('queryInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runQuery();
+});
+
+// ── Auto-demo: ingest all events on page load with delay ─────────────────────
+
+async function autoDemo() {
+  for (let i = 0; i < SCENARIOS[0].length; i++) {
+    await new Promise(r => setTimeout(r, 600 + i * 50));
+    addRandomEvent();
+  }
+  // Auto-run default query
+  document.getElementById('queryInput').value = 'what is the user working on?';
+  setTimeout(runQuery, 400);
+}
+
+autoDemo();
+
+// Age updater
+setInterval(() => {
+  if (events.length > 0) renderFeed();
+}, 10000);
+</script>
+</body>
+</html>
