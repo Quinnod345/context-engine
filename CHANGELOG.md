@@ -2,6 +2,13 @@
 
 All notable changes to context-engine-ai are documented here.
 
+## [0.2.2] - 2026-03-05
+
+### Added
+- MCP (Model Context Protocol) server example — use context-engine as a tool server in Claude Desktop, Cursor, Windsurf, or any MCP client (`examples/mcp-server.js`)
+- `mcp` and `model-context-protocol` keywords for npm discoverability
+- MCP Quick Start section in README
+
 ## [0.2.1] - 2026-03-04
 
 ### Fixed

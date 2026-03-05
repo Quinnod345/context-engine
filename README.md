@@ -213,6 +213,36 @@ Or via CLI:
 npx context-engine-ai serve --port 3334
 ```
 
+### As an MCP Server (Claude Desktop, Cursor, Windsurf)
+
+Use context-engine as a [Model Context Protocol](https://modelcontextprotocol.io) tool server. Any MCP-compatible client (Claude Desktop, Cursor, Windsurf, VS Code) can then call `ingest_event`, `query_context`, `get_recent`, and `clear_context` as native tools.
+
+```bash
+npm install @modelcontextprotocol/sdk zod
+node examples/mcp-server.js
+```
+
+Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "context-engine": {
+      "command": "node",
+      "args": ["/absolute/path/to/examples/mcp-server.js"]
+    }
+  }
+}
+```
+
+The agent can then call:
+- **`ingest_event`** — store any event (`type` + `data`)
+- **`query_context`** — semantic search: `"any errors in the last hour?"`
+- **`get_recent`** — latest N events by timestamp
+- **`clear_context`** — wipe the store
+
+See [`examples/mcp-server.js`](./examples/mcp-server.js) for the full implementation.
+
 ### REST Endpoints
 
 | Method | Path | Description |
@@ -560,6 +590,7 @@ See the [`examples/`](./examples) directory for runnable code:
 | [`server.js`](./examples/server.js) | Running as an HTTP service |
 | [`ai-agent.js`](./examples/ai-agent.js) | Feeding context into Claude |
 | [`webhook-server.js`](./examples/webhook-server.js) | Multi-source webhook aggregation |
+| [`mcp-server.js`](./examples/mcp-server.js) | MCP tool server for Claude Desktop, Cursor, Windsurf |
 | [`custom-storage.js`](./examples/custom-storage.js) | Implementing a custom storage adapter |
 
 ```bash
@@ -604,7 +635,6 @@ Contributions welcome. Open an issue or PR. Some ideas:
 - New storage adapters (Redis, DuckDB, Turso)
 - New embedding providers (Cohere, local ONNX models)
 - Browser extension for automatic context capture
-- MCP (Model Context Protocol) server integration
 - Streaming ingestion via WebSocket
 
 ## License
