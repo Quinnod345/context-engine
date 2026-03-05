@@ -64,4 +64,11 @@ describe('HTTP Server', () => {
     const body = await res.json() as { events: unknown[] }
     expect(Array.isArray(body.events)).toBe(true)
   })
+
+  it('should return count', async () => {
+    const res = await fetch(`http://localhost:${port}/count`)
+    const body = await res.json() as { count: number }
+    expect(typeof body.count).toBe('number')
+    expect(body.count).toBeGreaterThan(0)
+  })
 })

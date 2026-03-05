@@ -132,6 +132,16 @@ export class ContextEngine {
     return this.storage.recent(limit)
   }
 
+  async count(): Promise<number> {
+    await this.ensureInit()
+    return this.storage.count()
+  }
+
+  async clear(): Promise<void> {
+    await this.ensureInit()
+    await this.storage.prune(0)
+  }
+
   serve(port = 3334): Server {
     const app = createServer(this)
     this.httpServer = app.listen(port, () => {

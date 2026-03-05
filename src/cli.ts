@@ -1,13 +1,17 @@
 #!/usr/bin/env node
 import { Command } from 'commander'
+import { createRequire } from 'module'
 import { ContextEngine } from './engine.js'
+
+const require = createRequire(import.meta.url)
+const { version } = require('../package.json') as { version: string }
 
 const program = new Command()
 
 program
   .name('context-engine')
   .description('Context engine for AI agents')
-  .version('0.1.0')
+  .version(version)
 
 program
   .command('serve')
