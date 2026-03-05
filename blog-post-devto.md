@@ -1,7 +1,7 @@
 ---
 title: "Building Real-Time Context for AI Agents Without a Vector Database"
 published: true
-description: "How I built context-engine-ai — a zero-config context engine that gives AI agents situational awareness using SQLite and local embeddings."
+description: "How I built context-engine-ai — a zero-config context engine that gives AI agents situational awareness using SQLite and local embeddings. Now with MCP server support."
 tags: ai, typescript, opensource, tutorial
 cover_image: https://opengraph.githubassets.com/1/Quinnod345/context-engine
 canonical_url: https://github.com/Quinnod345/context-engine
@@ -158,6 +158,19 @@ setInterval(async () => {
   await ctx.ingest({ type: 'window_focus', data: { app } })
 }, 5000)
 ```
+
+## MCP Server (Claude Desktop, Cursor, Windsurf)
+
+One more use case worth calling out: you can run context-engine as an [MCP](https://modelcontextprotocol.io) (Model Context Protocol) tool server. This lets Claude Desktop, Cursor, or any MCP-compatible client call `ingest_event`, `query_context`, `get_recent`, and `clear_context` as native tools.
+
+```bash
+npm install @modelcontextprotocol/sdk zod
+node examples/mcp-server.js
+```
+
+Point your MCP client at the process and the agent can ingest and query context natively. Full setup in [`examples/mcp-server.js`](https://github.com/Quinnod345/context-engine/blob/main/examples/mcp-server.js).
+
+---
 
 ## When NOT to Use This
 
