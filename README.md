@@ -250,6 +250,8 @@ See [`examples/mcp-server.js`](./examples/mcp-server.js) for the full implementa
 | `POST` | `/ingest` | Ingest an event `{ type, data }` |
 | `GET`  | `/context?q=...&limit=10` | Semantic query |
 | `GET`  | `/recent?limit=20` | Recent events by timestamp |
+| `GET`  | `/count` | Number of stored events |
+| `DELETE` | `/events` | Clear all stored events |
 | `GET`  | `/health` | Health check |
 
 ```bash
@@ -290,7 +292,7 @@ await ctx.ingest({ type: 'pr',      data: { repo: 'backend', title: 'Fix OAuth t
 const context = await ctx.query('what needs attention?', 5)
 
 const response = await claude.messages.create({
-  model: 'claude-sonnet-4-20250514',
+  model: 'claude-sonnet-4-6',
   max_tokens: 1024,
   system: `You are a developer assistant. Current context:\n${context.summary}`,
   messages: [{ role: 'user', content: 'What should I focus on?' }]
@@ -538,6 +540,19 @@ interface ContextResult {
 
 Get the most recent events ordered by timestamp. Default limit: 20.
 
+### `ctx.count(): Promise<number>`
+
+Returns the number of events currently stored.
+
+```js
+const n = await ctx.count()
+console.log(`${n} events in context`)
+```
+
+### `ctx.clear(): Promise<void>`
+
+Remove all stored events.
+
 ### `ctx.serve(port?): Server`
 
 Start an Express HTTP server. Default port: 3334. Returns a Node.js `http.Server`.
@@ -589,6 +604,7 @@ See the [`examples/`](./examples) directory for runnable code:
 | [`basic.js`](./examples/basic.js) | Event ingestion and semantic querying |
 | [`server.js`](./examples/server.js) | Running as an HTTP service |
 | [`ai-agent.js`](./examples/ai-agent.js) | Feeding context into Claude |
+| [`agent-context.js`](./examples/agent-context.js) | Building a structured context block for agent system prompts |
 | [`webhook-server.js`](./examples/webhook-server.js) | Multi-source webhook aggregation |
 | [`mcp-server.js`](./examples/mcp-server.js) | MCP tool server for Claude Desktop, Cursor, Windsurf |
 | [`custom-storage.js`](./examples/custom-storage.js) | Implementing a custom storage adapter |
