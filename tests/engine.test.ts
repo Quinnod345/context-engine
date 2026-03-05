@@ -66,4 +66,24 @@ describe('ContextEngine', () => {
     const recent = await engine.recent(10)
     expect(recent.length).toBeLessThanOrEqual(3)
   })
+
+  it('should expose count()', async () => {
+    engine = new ContextEngine({ storage: 'sqlite', embeddingProvider: 'local' })
+
+    expect(await engine.count()).toBe(0)
+    await engine.ingest({ type: 'editor', data: { app: 'VS Code', file: 'index.ts', project: 'backend' } })
+    await engine.ingest({ type: 'calendar', data: { title: 'Team standup', starts_in: '30 minutes' } })
+    expect(await engine.count()).toBe(2)
+  })
+
+  it('should clear all events with clear()', async () => {
+    engine = new ContextEngine({ storage: 'sqlite', embeddingProvider: 'local' })
+
+    await engine.ingest({ type: 'a', data: { v: 1 } })
+    await engine.ingest({ type: 'b', data: { v: 2 } })
+    expect(await engine.count()).toBeGreaterThan(0)
+
+    await engine.clear()
+    expect(await engine.count()).toBe(0)
+  })
 })

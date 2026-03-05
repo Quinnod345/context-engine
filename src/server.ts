@@ -44,6 +44,24 @@ export function createServer(engine: ContextEngine): express.Express {
     }
   })
 
+  app.get('/count', async (_req, res) => {
+    try {
+      const count = await engine.count()
+      res.json({ count })
+    } catch (err) {
+      res.status(500).json({ error: (err as Error).message })
+    }
+  })
+
+  app.delete('/events', async (_req, res) => {
+    try {
+      await engine.clear()
+      res.json({ ok: true })
+    } catch (err) {
+      res.status(500).json({ error: (err as Error).message })
+    }
+  })
+
   app.get('/health', (_req, res) => {
     res.json({ ok: true, timestamp: Date.now() })
   })
