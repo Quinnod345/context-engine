@@ -119,7 +119,7 @@ await ctx.ingest({ type: 'error',   data: { service: 'auth', error: 'TokenExpire
 const context = await ctx.query('what needs attention?', 5)
 
 const response = await claude.messages.create({
-  model: 'claude-sonnet-4-20250514',
+  model: 'claude-sonnet-4-6',
   max_tokens: 1024,
   system: `You are a developer assistant. Current context:\n${context.summary}`,
   messages: [{ role: 'user', content: 'What should I focus on?' }]

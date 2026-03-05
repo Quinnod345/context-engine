@@ -10,6 +10,7 @@ Ingest events from any source. Query with natural language. Get back ranked, tim
 [![CI](https://github.com/Quinnod345/context-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/Quinnod345/context-engine/actions)
 [![license](https://img.shields.io/npm/l/context-engine-ai)](./LICENSE)
 [![npm downloads](https://img.shields.io/npm/dm/context-engine-ai)](https://www.npmjs.com/package/context-engine-ai)
+[![GitHub stars](https://img.shields.io/github/stars/Quinnod345/context-engine?style=social)](https://github.com/Quinnod345/context-engine)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org/)
 [![Node](https://img.shields.io/badge/Node-%3E%3D18-green)](https://nodejs.org/)
 
