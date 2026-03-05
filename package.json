@@ -1,6 +1,6 @@
 {
   "name": "context-engine-ai",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "A lightweight context engine for AI agents. Ingest events, build semantic context, query with natural language. Zero config default with SQLite + local TF-IDF embeddings.",
   "type": "module",
   "main": "dist/index.js",

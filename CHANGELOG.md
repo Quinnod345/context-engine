@@ -2,6 +2,16 @@
 
 All notable changes to context-engine-ai are documented here.
 
+## [0.2.3] - 2026-03-05
+
+### Fixed
+- README API Reference: `count()` and `clear()` methods were missing (added in 0.2.1)
+- README REST Endpoints table: `GET /count` and `DELETE /events` were missing
+- README Examples table: `agent-context.js` was missing
+
+### Changed
+- Updated Claude model reference in README to `claude-sonnet-4-6`
+
 ## [0.2.2] - 2026-03-05
 
 ### Added
