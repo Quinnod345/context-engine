@@ -1,8 +1,9 @@
 ---
 title: "Building Real-Time Context for AI Agents Without a Vector Database"
-published: false
+published: true
 description: "How I built context-engine-ai — a zero-config context engine that gives AI agents situational awareness using SQLite and local embeddings."
 tags: ai, typescript, opensource, tutorial
+cover_image: https://opengraph.githubassets.com/1/Quinnod345/context-engine
 canonical_url: https://github.com/Quinnod345/context-engine
 ---
 

@@ -13,7 +13,7 @@ Ingest events from any source. Query with natural language. Get back ranked, tim
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org/)
 [![Node](https://img.shields.io/badge/Node-%3E%3D18-green)](https://nodejs.org/)
 
-[Try the Demo](#try-it-in-10-seconds) · [Install](#install) · [Quick Start](#quick-start) · [Use Cases](#use-cases) · [API Reference](#api-reference) · [Examples](./examples)
+[**Live Demo**](https://quinnod345.github.io/context-engine/) · [Try the CLI](#try-it-in-10-seconds) · [Install](#install) · [Quick Start](#quick-start) · [Use Cases](#use-cases) · [API Reference](#api-reference) · [Examples](./examples)
 
 </div>
 
@@ -630,12 +630,18 @@ npm run dev       # Watch mode
 
 ## Contributing
 
-Contributions welcome. Open an issue or PR. Some ideas:
+See [CONTRIBUTING.md](./CONTRIBUTING.md). Some ideas:
 
 - New storage adapters (Redis, DuckDB, Turso)
 - New embedding providers (Cohere, local ONNX models)
 - Browser extension for automatic context capture
 - Streaming ingestion via WebSocket
+
+## Star History
+
+If context-engine-ai saves you time, a ⭐ on GitHub helps others find it.
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Quinnod345/context-engine&type=Date)](https://star-history.com/#Quinnod345/context-engine&Date)
 
 ## License
 
