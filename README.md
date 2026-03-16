@@ -618,12 +618,35 @@ node examples/ai-agent.js            # Agent integration (needs ANTHROPIC_API_KE
 
 ---
 
+## Pricing
+
+The npm package is **free and open source** (MIT) — every feature, no limits, no API keys required.
+
+For managed infrastructure, we offer a cloud API:
+
+| | **Open Source** | **Pro** | **Team** | **Enterprise** |
+|---|---|---|---|---|
+| **Price** | **Free** | **$29/mo** | **$99/mo** | Custom |
+| Full library + CLI + MCP | Yes | Yes | Yes | Yes |
+| Self-hosted (SQLite / PostgreSQL) | Yes | Yes | Yes | Yes |
+| Local + OpenAI embeddings | BYOK | Included | Included | Included |
+| **Managed Cloud API** | — | Yes | Yes | Yes |
+| Events/month | Unlimited | 50,000 | 500,000 | Unlimited |
+| Support | GitHub Issues | Email | Priority | Dedicated + SLA |
+
+Early access: email **oneiro-dev@proton.me** with subject "Cloud API Access" — first adopters get 3 months free.
+
+[Full pricing details](./docs/pricing.md)
+
+---
+
 ## Documentation
 
 - [Quick Start Guide](./docs/quick-start.md) — running in under 2 minutes
 - [Architecture Overview](./docs/architecture.md)
 - [Custom Adapters](./docs/custom-adapters.md)
 - [Deployment Guide](./docs/deployment.md)
+- [Pricing](./docs/pricing.md)
 
 ## Requirements
 

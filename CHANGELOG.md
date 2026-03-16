@@ -2,6 +2,14 @@
 
 All notable changes to context-engine-ai are documented here.
 
+## [0.3.0] - 2026-03-16
+
+### Added
+- **Pricing model** — Free (MIT, full-featured) / Pro ($29/mo) / Team ($99/mo) / Enterprise (custom)
+- `docs/pricing.md` — detailed pricing page with plan comparison, FAQ, and annual pricing
+- Pricing section in README with tier comparison table
+- Cloud API waitlist (email oneiro-dev@proton.me)
+
 ## [0.2.3] - 2026-03-05
 
 ### Fixed
